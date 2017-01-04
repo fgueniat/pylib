@@ -1,0 +1,193 @@
+import numpy as np
+from scipy.optimize import minimize as solve
+from scipy.linalg import sqrtm
+
+measures_possible = ['cond', 'det','trace']
+
+def EG(fobs,dx,eps_,time,function dx = f_explore(dyn_func,eps, init,t)
+nx=numel(init);nt=numel(t);
+
+dx = zeros(nt,nx,nx,2);
+[~,x] = ode45(dyn_func,t,init);
+for i = 1:nx,
+    base = zeros(nx,1);base(i) = eps;
+    [~,xp] = ode45(dyn_func,t,init+base);
+    [~,xm] = ode45(dyn_func,t,init-base);
+    dx(:,:,i,1) = xp;
+    dx(:,:,i,2) = xm;
+end
+
+end
+nt = False,nx = False,ny = False):
+	''' Empirical gramian'''
+	if nt is False:nt = np.size(time)
+	if nx is False:nx = dx[0,:,0,0].size
+	if ny is False:ny = fobs(dx[0,:,0,0]).size
+	W = np.zeros((nx,nx))
+	for i in xrange(offset,nt):
+		y=zeros((nx,2*ny))
+		for ix = 1:nx
+			y[ix,1:ny] = obs_func(dx[it,:,ix,0]);
+			y[ix,1+ny:end] = fobs(dx[it,:,ix,1]);
+		W = W+np.outer(y,y) # equiv to W = W + y*y.T
+
+	W = dt*W/(4.*eps_*eps_);
+	W = W+W.T
+	return W
+
+
+
+
+def emp_gram(DY,eps):
+	if len(DY[0].shape)==1:DY = [dy[np.newaxis] for dy in DY]
+	W = np.array(1./(4*eps**2) * sum([np.dot(dy.T,dy) for dy in DY]))
+#	return W
+	return sqrtm(W,disp=False)[0]
+
+def obs(C,x):
+	return np.dot(C,x)
+
+def obs_matrix(i,j,n,m):
+	''' Build the observability matrix '''
+	C = np.zeros((n,m))
+	for ind_,i_i in enumerate(i):
+		C[i[ind_],j[ind_]] =1
+	return C.T
+
+def M(W,measure):
+	''' Measure of the quality of the Gramian '''
+
+	if measure is 'cond':
+		J = np.linalg.cond(W)
+	if measure is 'det':
+		try:
+			J=np.linalg.det( np.linalg.inv(W) )
+		except:
+			J = 1.e18
+	if measure is 'trace':
+		try:
+			J=np.linalg.trace( np.linalg.inv(W) )
+		except:
+			J = 1.e18
+	if J == np.inf:
+		J = 1.e18
+	return J
+
+def cost(alpha,Wi, measures = ['trace']):
+	''' Cost function '''
+	rho = 0.
+	W = Wi[0]
+	for i in xrange(len(alpha)): W += alpha[i]*Wi[i+1]
+	J = rho*np.linalg.norm(alpha,1)
+	for measure in measures_possible:
+		if measure in measures:
+			J += M(W,measure=measure)
+#	if J<0:J=1.e6
+#	print(np.abs(J))
+	return J
+
+def cost2(alpha,Wi, measures = ['cond']):
+	''' Cost function '''
+	rho = 0.
+
+	for i in xrange(len(alpha)):
+		if i==0: W = alpha[i]*Wi[i]
+		else: W += alpha[i]*Wi[i]
+	J = rho*np.linalg.norm(alpha,1)
+	for measure in measures_possible:
+		if measure in measures:
+			J += M(W,measure=measure)
+#	if J<0:J=1.e6
+#	print(np.abs(J))
+	return J
+
+def cost_neighboor(alpha,Wi, alpha_0):	
+
+	W = Wi[0]
+	for i in xrange(len(alpha)): W += alpha[i]*Wi[i+1]
+	J = - M(W,'cond') + 0.*np.linalg.norm(alpha-alpha_0)
+	# check tangent ?
+	return J
+
+def cost_neighboor2(alpha,Wi, alpha_0):	
+	for i in xrange(len(alpha)):
+		if i==0: W = alpha[i]*Wi[i]
+		else: W += alpha[i]*Wi[i]
+	J = - M(W,'cond') + 0.*np.linalg.norm(alpha-alpha_0)
+	# check tangent ?
+	return J
+
+
+def delta_obs(trajs,C):
+	n = trajs.shape[1]
+	N = trajs.shape[3]
+	DY = []
+	for it in xrange(N):
+		dy = np.array( [  obs(C,trajs[0,ix,:,it]) for ix in xrange(n)] ).flatten() - np.array( [obs(C,trajs[1,ix,:,it]) for ix in xrange(n)] ).flatten()
+		DY.append(dy)
+	return DY
+
+def opt_gram(func=False,x_0 = False, eps = False,t_0=0,dt=1e-6,tmax = False, bds = False):
+# construction of the data:
+
+	if func is False or x_0 is False:
+		print "need parameters"
+		return -1
+	if eps is False: eps = 1.e-3*np.linalg.norm(x_0)
+	if tmax is False: tmax = 1000*dt
+	if t_0>tmax:
+		print "t0/tmax incorrect"
+		return -1
+
+	n = len(x_0)
+	if len(bds)!=n and len(bds)!=1 and bds is not False:
+		print len(bds)
+		print "bds not well defined"
+		return -1
+	N = int((tmax-t_0)/dt)
+
+	time = np.arange(N)*dt
+	trajs = np.zeros((2,n,n,N))
+	dx0 = np.zeros((2,n,n))
+
+	for pm in xrange(2):
+		if pm == 0: de = eps
+		else: de = -eps
+		for ix in xrange(n):
+			dx =np.copy(x_0)
+			dx[ix]+=de
+			dx0[pm,ix,:] = dx-x_0
+			for it,t in enumerate(time):
+				trajs[pm,ix,:,it] = dx
+				dx = func(dx,time,dt)
+	Wis = []
+	Cis = []
+	for ix in xrange(n):
+#		for iy in xrange(n):
+			C = obs_matrix([ix],[0],n,1)
+			DY = delta_obs(trajs,C)
+#			DY = delta_obs(trajs[:,:,:,int(.8*N):],C)
+			Wis.append( emp_gram(DY,eps) )
+			Cis.append( C )
+	if bds is False: bds = ((-1,1,),)*(n-1)
+	elif len(bds)==1: bds = bds*(n-1)
+	res = solve(cost,np.ones(n-1),(Wis),bounds = bds)
+	alpha_0 = res.x
+	da = 0.20*np.linalg.norm(alpha_0)
+	for i in xrange(n-1):
+		if i==0:bds=()
+		bds = bds + ((alpha_0[i]-da,alpha_0[i]+da),) 
+	print(alpha_0)
+	print(bds)
+#	res = solve(cost_neighboor,alpha_0,(Wis,alpha_0),bounds=bds)
+	res.Wis,res.Cis,res.trajs,res.alpha_0 =  Wis,Cis,trajs, alpha_0
+	res.x = np.r_[1.,res.x]
+	return res
+
+
+
+
+
+
+
+
