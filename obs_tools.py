@@ -120,7 +120,7 @@ def p_explore(dd):
 	return xx,yy
 
 
-def M(W,measure='trace'):
+def M(W,measure='cond'):
 	''' Measure of the quality of the Gramian '''
 
 	if measure is 'cond':
@@ -137,7 +137,7 @@ def M(W,measure='trace'):
 			J = 1.e18
 	if J == np.inf:
 		J = 1.e18
-	return J
+	return np.log(J)
 
 
 def cost_neighboor(alpha,Wi, alpha_0):	
@@ -148,3 +148,4 @@ def cost_neighboor(alpha,Wi, alpha_0):
 	# check tangent ?
 	return J
 
+	dx0 = np.zeros((2,n,n))
