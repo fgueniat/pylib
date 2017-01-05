@@ -7,9 +7,6 @@ from cantera_tools import chemreac
 
 measures_possible = ['cond', 'det','trace']
 
-def point2manifold(alpha,x):
-	pass
-
 def slow_manifold(alpha_0, dx=False, f_def_obs=False,eps_ = False,time = False):
 	if dx is False:
 		print 'run f_explore first'
@@ -42,17 +39,17 @@ def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = 1./2):
 	if nt is False:nt = np.size(time)
 	if nx is False:nx = dx[0,:,0,0].size
 	if ny is False:ny = fobs(dx[0,:,0,0]).size
-	dt = time[1]-time[0]
-	offset = int(offset*nt)
+	offset = int(offset*nt)+1
 	W = np.zeros((nx,nx))
 	for it in xrange(offset,nt):
+		dt = time[it]-time[it-1]
 		y=np.zeros((nx,2*ny))
 		for ix in xrange(nx):
 			y[ix,0:ny] = fobs(dx[it,:,ix,0]);
 			y[ix,ny:] = fobs(dx[it,:,ix,1]);
-		W = W+np.dot(y,y.T) # equiv to W = W + y*y.T
+		W = W+dt*np.dot(y,y.T) # equiv to W = W + y*y.T
 
-	W = dt*W/(4.*eps_*eps_);
+	W = W/(4.*eps_*eps_);
 	W = W+W.T
 	return W
 
@@ -123,64 +120,6 @@ def p_explore(dd):
 	return xx,yy
 
 
-def emp_gram(DY,eps):
-	if len(DY[0].shape)==1:DY = [dy[np.newaxis] for dy in DY]
-	W = np.array(1./(4*eps**2) * sum([np.dot(dy.T,dy) for dy in DY]))
-#	return W
-	return sqrtm(W,disp=False)[0]
-
-def obs(C,x):
-	return np.dot(C,x)
-
-def obs_matrix(i,j,n,m):
-	''' Build the observability matrix '''
-	C = np.zeros((n,m))
-	for ind_,i_i in enumerate(i):
-		C[i[ind_],j[ind_]] =1
-	return C.T
-
-def M(W,measure='trace'):
-	''' Measure of the quality of the Gramian '''
-
-	if measure is 'cond':
-		J = np.linalg.cond(W)
-	if measure is 'det':
-		try:
-			J=np.linalg.det( np.linalg.inv(W) )
-		except:
-			J = 1.e18
-	if measure is 'trace':
-		try:
-			J=np.trace( np.linalg.inv(W) )
-		except:
-			J = 1.e18
-	if J == np.inf:
-		xx=xx+(dd[:,0,i,1],)
-		yy=yy+(dd[:,1,i,1],)
-	pd=pt.Paradraw()
-	pd.x_label = '$x_1$'
-	pd.y_label = '$x_2$'
-	pd.marks = ['k']	
-	pt.multiplot2(xx,yy,pd)
-	return xx,yy
-
-
-def emp_gram(DY,eps):
-	if len(DY[0].shape)==1:DY = [dy[np.newaxis] for dy in DY]
-	W = np.array(1./(4*eps**2) * sum([np.dot(dy.T,dy) for dy in DY]))
-#	return W
-	return sqrtm(W,disp=False)[0]
-
-def obs(C,x):
-	return np.dot(C,x)
-
-def obs_matrix(i,j,n,m):
-	''' Build the observability matrix '''
-	C = np.zeros((n,m))
-	for ind_,i_i in enumerate(i):
-		C[i[ind_],j[ind_]] =1
-	return C.T
-
 def M(W,measure='trace'):
 	''' Measure of the quality of the Gramian '''
 
@@ -200,33 +139,6 @@ def M(W,measure='trace'):
 		J = 1.e18
 	return J
 
-def cost(alpha,Wi, measures = ['trace']):
-	''' Cost function '''
-	rho = 0.
-	W = Wi[0]
-	for i in xrange(len(alpha)): W += alpha[i]*Wi[i+1]
-	J = rho*np.linalg.norm(alpha,1)
-	for measure in measures_possible:
-		if measure in measures:
-			J += M(W,measure=measure)
-#	if J<0:J=1.e6
-#	print(np.abs(J))
-	return J
-
-def cost2(alpha,Wi, measures = ['cond']):
-	''' Cost function '''
-	rho = 0.
-
-	for i in xrange(len(alpha)):
-		if i==0: W = alpha[i]*Wi[i]
-		else: W += alpha[i]*Wi[i]
-	J = rho*np.linalg.norm(alpha,1)
-	for measure in measures_possible:
-		if measure in measures:
-			J += M(W,measure=measure)
-#	if J<0:J=1.e6
-#	print(np.abs(J))
-	return J
 
 def cost_neighboor(alpha,Wi, alpha_0):	
 
@@ -236,43 +148,3 @@ def cost_neighboor(alpha,Wi, alpha_0):
 	# check tangent ?
 	return J
 
-def cost_neighboor2(alpha,Wi, alpha_0):	
-	for i in xrange(len(alpha)):
-		if i==0: W = alpha[i]*Wi[i]
-		else: W += alpha[i]*Wi[i]
-	J = - M(W,'cond') + 0.*np.linalg.norm(alpha-alpha_0)
-	# check tangent ?
-	return J
-
-
-def delta_obs(trajs,C):
-	n = trajs.shape[1]
-	N = trajs.shape[3]
-	DY = []
-	for it in xrange(N):
-		dy = np.array( [  obs(C,trajs[0,ix,:,it]) for ix in xrange(n)] ).flatten() - np.array( [obs(C,trajs[1,ix,:,it]) for ix in xrange(n)] ).flatten()
-		DY.append(dy)
-	return DY
-
-def opt_gram(func=False,x_0 = False, eps = False,t_0=0,dt=1e-6,tmax = False, bds = False):
-# construction of the data:
-
-	if func is False or x_0 is False:
-		print "need parameters"
-		return -1
-	if eps is False: eps = 1.e-3*np.linalg.norm(x_0)
-	if tmax is False: tmax = 1000*dt
-	if t_0>tmax:
-		print "t0/tmax incorrect"
-		return -1
-
-	n = len(x_0)
-	if len(bds)!=n and len(bds)!=1 and bds is not False:
-		print len(bds)
-		print "bds not well defined"
-		return -1
-	N = int((tmax-t_0)/dt)
-
-	time = np.arange(N)*dt
-	trajs = np.zeros((2,n,n,N))
-	dx0 = np.zeros((2,n,n))
