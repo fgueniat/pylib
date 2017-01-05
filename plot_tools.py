@@ -95,7 +95,7 @@ def clim(self,lim=False):
 		return self.__dict__
 
 class Paradraw():
-	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False):
+	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False]):
 
 #plot style
 		self.marks = marks
@@ -109,6 +109,8 @@ class Paradraw():
 		self.transparancy = transparancy
 		self.tight_layout = tight_layout
 		self.stem  = stem
+#legend
+		self.legend=legend
 #axis labels
 		self.x_label = x_label
 		self.y_label = y_label
@@ -150,6 +152,9 @@ class Paradraw():
 	@property
 	def help(self):
 		return self.__dict__
+	@property
+	def r(self): self.figure=False
+
 def help():
 	s = "Paradraw: \n marks='-k',x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', \n colmap = 'hot_r', \n xlim = False, ylim = False,zlim = False,clim = False, \n x_scale = 'linear',y_scale = 'linear',z_scale = 'linear', \n title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.1e',ax_y_format = '%.1e',ax_z_format = '%.1e',cbformat = '%.1e', \n figure=False, \n bar_col = [0.0,0.0,1.0], \n transparancy = False, \n ncont = 15,pcol_type = 'contourf' "
 	print(s)
@@ -231,9 +236,9 @@ def plot3(x,y,z, param = False,figure=False):
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 	if param.markeredge is False:
-		ax.plot(x, y, z, mci, markeredgecolor='none')
+		ax.plot(x, y, z, mci, markeredgecolor='none',label=param.legend[0])
 	else:
-		ax.plot(x, y, z, mci)
+		ax.plot(x, y, z, mci, label=param.legend[0])
 	Options(ax,(x,y,z),param)
 	return (fig,ax)
 
@@ -362,12 +367,16 @@ def multiplot2(x,y,param=False):
 			linewidth = param.thickness[j]
 		except:
 			linewidth = 1
+		try:
+			leg=param.legend[j]
+		except:
+			leg=False
 		if param.markeredge is False:
-			if param.stem is False:ax.plot(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy)
-			else: ax.stem(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy)
+			if param.stem is False:ax.plot(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+			else: ax.stem(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
 		else:
-			if param.stem is False:ax.plot(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy)
-			else:ax.stem(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy)
+			if param.stem is False:ax.plot(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy,label=leg)
+			else:ax.stem(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy,label=leg)
 	
 	ax.set_xlabel(param.x_label)
 	ax.set_ylabel(param.y_label)
@@ -391,15 +400,19 @@ def multiplot3(x,y,z,figure=False, param = False):
 			mci = param.marks[j]
 		except:
 			mci = '-k'
+		try:
+			leg=param.legend[j]
+		except:
+			leg=False
 #		if param.markeredge is False:
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 		if param.markeredge is False:
-			ax.plot(x[j], y[j], z[j], mci, markeredgecolor='none')
+			ax.plot(x[j], y[j], z[j], mci, markeredgecolor='none',label=leg)
 		else:
-			ax.plot(x[j], y[j], z[j], mci)
+			ax.plot(x[j], y[j], z[j], mci,label=leg)
 
-		ax.plot(x[j], y[j], z[j],mci)
+#		ax.plot(x[j], y[j], z[j],mci,label=leg)
 	Options(ax,(x[0],y[0],z[0]),param)
 	return (fig,ax)
 
@@ -543,11 +556,11 @@ def plot2(data,param=False):
 		fig = param.figure[0]
 		ax = param.figure[1]
 	if param.markeredge is False:
-		if param.stem is False:ax.plot( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0])
-		else:ax.stem( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0])
+		if param.stem is False:ax.plot( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
 	else:
-		if param.stem is False:ax.plot( x, y, param.marks[0],linewidth = param.thickness[0])
-		else:ax.stem( x, y, param.marks[0],linewidth = param.thickness[0])
+		if param.stem is False:ax.plot( x, y, param.marks[0],linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, param.marks[0],linewidth = param.thickness[0],label=param.legend[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
 
@@ -678,6 +691,8 @@ def Options(ax,X,param=False, cbar=False):
 	if is3d is True:
 		if param.z_tick_label is None: ax.zaxis.set_visible(True)
 
+	if all(legend is False for legend in param.legend) is False:
+		ax.legend()
 	if is3d is False:	
 		if param.tight_layout is True:
 			try:
