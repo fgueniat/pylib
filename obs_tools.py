@@ -7,23 +7,54 @@ from cantera_tools import chemreac
 
 measures_possible = ['cond', 'det','trace']
 
-def slow_manifold(alpha_0, dx=False, f_def_obs=False,eps_ = False,time = False):
-	if dx is False:
+def alpha_grid(bounds,n):
+	#bounds = np.repeat([(0,1)], D, axis = 0)
+
+	alphas = np.ogrid[[slice(row[0], row[1], i_n*1j) for row, i_n in zip(bounds, n)]]
+	
+	return alphas
+def grid2list(alphas):
+	pass
+	
+
+def response_(alphas=None,dx=None,f_def_obs=None,time=None,eps_=None,rho=1.e-3):
+	if alphas is None:
+		print 'please provide alphas'
+	S=[]
+	if dx is None:
 		print 'run f_explore first'
 		return -1
-	if time is False:
+	if time is None:
 		print 'time needed'
 		return -1
-	if eps_ is False:
+	if eps_ is None:
 		print 'need precision'
 		return -1
-	if f_def_obs is False:
+	if f_def_obs is None:
 		print ' obserabl def as y=sum alpha_i x_i'
 		f_def_obs = lambda x,alpha: np.dot(alpha,x)
-	alpha = solve(cost_gramian,alpha_0,args = (f_def_obs,0.,dx,eps_,time))
+	J = lambda alpha: cost_gramian(alpha, f_def_obs=f_def_obs, rho=rho, dx=dx, eps_=eps_, time=time)
+	for alpha in alphas:
+		S.append(J(alpha))
+	return S
+def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False):
+	if dx is None:
+		print 'run f_explore first'
+		return -1
+	if time is None:
+		print 'time needed'
+		return -1
+	if eps_ is None:
+		print 'need precision'
+		return -1
+	if f_def_obs is None:
+		print ' obserabl def as y=sum alpha_i x_i'
+		f_def_obs = lambda x,alpha: np.dot(alpha,x)
+	#alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time))
+	alpha = solve(cost_gramian,alpha_0,method = 'Powell', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
 	return alpha
 
-def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False,nt = False, ny=False, nx = False):
+def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False,nt = False, ny=False, nx = False, measure=None,verbose = False):
 	#def obs
 	if f_def_obs is False:fobs = lambda xx: xx[1] - np.sum([xx[0]**a for a in alpha])
 	else:fobs = lambda x: f_def_obs(x,alpha)
@@ -31,10 +62,19 @@ def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=Fals
 	if nx is False:nx = np.size(dx[0,:,0,0])
 	if ny is False:ny = np.size(fobs(dx[0,:,0,0]))
 	w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny)
-	J =1./ M(w) + rho * np.linalg.norm(alpha)
+	if measure is None or measure not in measures_possible:
+		measure = 'trace'
+	
+	if verbose is True:
+		print 'gramian'
+		print w
+		print 'Measure of the gramian:' + str(1./(M(w,measure=measure)))
+		print 'regularisation: ' + str(np.linalg.norm(alpha)) + ' and rho: ' + str(rho)
+# 
+	J =1./ M(w,measure = measure) + rho * np.linalg.norm(alpha)
 	return J
 
-def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = 1./2):
+def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .3333):
 	''' Empirical gramian'''
 	if nt is False:nt = np.size(time)
 	if nx is False:nx = dx[0,:,0,0].size
@@ -120,7 +160,7 @@ def p_explore(dd):
 	return xx,yy
 
 
-def M(W,measure='cond'):
+def M(W,measure='trace'):
 	''' Measure of the quality of the Gramian '''
 
 	if measure is 'cond':

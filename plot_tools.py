@@ -327,15 +327,15 @@ def multiplot2(x,y,param=False):
 	if param is False:
 		param = Paradraw()
 	if param.xlim is False:
-		param.xlim = [0.,0.]
-		for i in xrange(len(x)):
+		param.xlim = [np.min(x[0]),np.max(x[0])]
+		for i in xrange(1,len(x)):
 			m=np.min(x[i])
 			if m < param.xlim[0]: param.xlim[0] = m
 			m=np.max(x[i])
 			if m > param.xlim[1]: param.xlim[1] = m 
 	if param.ylim is False:
-		param.ylim = [0.,0.]
-		for i in xrange(len(y)):
+		param.ylim = [np.min(y[0]),np.max(y[0])]
+		for i in xrange(1,len(y)):
 			m=np.min(y[i])
 			if m < param.ylim[0]: param.ylim[0] = m
 			m=np.max(y[i])
