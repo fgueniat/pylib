@@ -359,7 +359,7 @@ def RPN(expression,input_):
 		
 	return stack.pop()
 
-def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, retain=0.15, random_select=0.15, mutate=0.1, new = 0.05, verbose = False,  npar = 0, new_indiv = False):
+def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15, random_select=0.15, mutate=0.1, new = 0.05, verbose = False,  npar = 0,parameters = False):
 	""" Evolution of a population. 
 	* f_fit: fitness function, ie the function that computes the score -reward- associated to an individu.
 	* f_mut: mutation function, ie the function that describes how mutation of an individu is done.
@@ -375,7 +375,6 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, retain=0.15, random_select
 		print('f_mut: mutation function, ie the function that describes how mutation of an individu is done. It should take an individual as argument, and return a mutated individual.')
 		print('f_cross: crossover function, ie the function that describes how breeding betwin two individus is done. It should take two individuals - parents - as arguments, and returned a individual -- the child -  as the crossover of the two parents.')
 		return pop 
-
 	#compute scores	
 	if npar == 0:
 		scores = [ (f_fit(individual), individual) for individual in pop]
@@ -404,8 +403,9 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, retain=0.15, random_select
 	for individual in scores[retain_length:]:
 		if random_select > random():
 			parents.append(individual)
-		elif new > random():
-			parents.append(Individual(depth = individual.max_depth))
+		if f_new is not False:
+			if new > random():
+				parents.append(f_new())
 
 	# mutate some individuals
 	for individual in parents:
@@ -417,8 +417,6 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, retain=0.15, random_select
 	parents_length = len(parents)
 	desired_length = len(pop) - parents_length
 	children = []
-	if new_indiv is not False:
-		children.append(new_indiv)
 	while len(children) < desired_length:
 		male = randint(0, parents_length-1)
 		female = randint(0, parents_length-2)

@@ -111,7 +111,7 @@ class chemreac():
 				s = 'the ' + str(i) + 'th species is ' + self.list[i]
 				print s
 			else:
-				s = 'the species' + i + ' is associated with number ' + self.list[i]
+				s = 'the species ' + i + ' is associated with number ' + str(self.list[i])
 				print s	
 
 	def concentrations(self,c=None,reset = True):

@@ -8,6 +8,8 @@ def print_(prec=3):
 class TwoWayDict(dict):
 	''' Dictionary that works both way, as a bijection
 	'''
+	def __init__(self,dic={}):
+		self.merge(dic)
 	def __setitem__(self, key, value):
 		# Remove any previous connections with these values
 		if key in self:

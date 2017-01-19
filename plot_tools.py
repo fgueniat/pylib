@@ -378,7 +378,7 @@ def multiplot2(x,y,param=False):
 		try:
 			linewidth = param.thickness[j]
 		except:
-			linewidth = 1
+			linewidth = 2
 		try:
 			leg=param.legend[j]
 		except:

@@ -51,7 +51,7 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
 		print ' obserabl def as y=sum alpha_i x_i'
 		f_def_obs = lambda x,alpha: np.dot(alpha,x)
 	#alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time))
-	alpha = solve(cost_gramian,alpha_0,method = 'Powell', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
+	alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-9,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
 	return alpha
 
 def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False,nt = False, ny=False, nx = False, measure=None,verbose = False):
@@ -74,21 +74,32 @@ def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=Fals
 	J =1./ M(w,measure = measure) + rho * np.linalg.norm(alpha)
 	return J
 
-def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .3333):
+def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2):
 	''' Empirical gramian'''
 	if nt is False:nt = np.size(time)
 	if nx is False:nx = dx[0,:,0,0].size
 	if ny is False:ny = fobs(dx[0,:,0,0]).size
 	offset = int(offset*nt)+1
 	W = np.zeros((nx,nx))
-	for it in xrange(offset,nt):
+	offtype = 'slow'
+	if offtype == 'fast':
+		nstart = 1
+		nend = offset
+	elif offtype == 'slow':
+		nstart = offset
+		nend = nt
+	else:
+		nstart = 1
+		nend = nt
+
+	for it in xrange(nstart,nend):
 		dt = time[it]-time[it-1]
 		y=np.zeros((nx,2*ny))
 		for ix in xrange(nx):
-			y[ix,0:ny] = fobs(dx[it,:,ix,0]);
-			y[ix,ny:] = fobs(dx[it,:,ix,1]);
+			y[ix,0:ny] = fobs(dx[it,:,ix,0]).flatten()
+			y[ix,ny:] = fobs(dx[it,:,ix,1]).flatten()
+#		y=y-np.mean(y)
 		W = W+dt*np.dot(y,y.T) # equiv to W = W + y*y.T
-
 	W = W/(4.*eps_*eps_);
 	W = W+W.T
 	return W
@@ -115,6 +126,10 @@ output has dimensions (nt x nx) x (nx x 2).
 	
 	dx = np.zeros((nt,nx,nx,2))
 	if isinstance(fdyn,chemreac):
+#		reaction = chemreac(cti=fdyn.cti,V=fdyn.V,problem = fdyn.problem,concentrations=x0)
+#		reaction.integrate(time=time)
+#		x=np.array(reaction.h_z)[1:,:]
+
 		for i in xrange(nx):
 			base = np.zeros(nx)
 			base[i] = eps_
@@ -175,6 +190,8 @@ def M(W,measure='trace'):
 			J=np.trace( np.linalg.inv(W) )
 		except:
 			J = 1.e18
+	if measure is 'mixte':J=M(W,'trace')+M(W,'det')
+
 	if J == np.inf:
 		J = 1.e18
 	return np.log(J)
