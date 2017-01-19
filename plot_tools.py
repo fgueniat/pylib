@@ -6,6 +6,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.ticker as mtick
 from os.path import expanduser
+<<<<<<< HEAD
 from matplotlib.colors import LogNorm
 
 
@@ -96,6 +97,12 @@ def clim(self,lim=False):
 
 class Paradraw():
 	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False]):
+=======
+
+
+class Paradraw():
+	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2f',ax_y_format = '%.2f',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False):
+>>>>>>> 9474c15e22522c2537f9680597890ba5f32b4400
 
 #plot style
 		self.marks = marks
@@ -155,6 +162,8 @@ class Paradraw():
 	@property
 	def r(self): self.figure=False
 
+	def help(self):
+		return self.__dict__
 def help():
 	s = "Paradraw: \n marks='-k',x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', \n colmap = 'hot_r', \n xlim = False, ylim = False,zlim = False,clim = False, \n x_scale = 'linear',y_scale = 'linear',z_scale = 'linear', \n title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.1e',ax_y_format = '%.1e',ax_z_format = '%.1e',cbformat = '%.1e', \n figure=False, \n bar_col = [0.0,0.0,1.0], \n transparancy = False, \n ncont = 15,pcol_type = 'contourf' "
 	print(s)
@@ -239,6 +248,9 @@ def plot3(x,y,z, param = False,figure=False):
 		ax.plot(x, y, z, mci, markeredgecolor='none',label=param.legend[0])
 	else:
 		ax.plot(x, y, z, mci, label=param.legend[0])
+		ax.plot(x, y, z, mci, markeredgecolor='none')
+	else:
+		ax.plot(x, y, z, mci)
 	Options(ax,(x,y,z),param)
 	return (fig,ax)
 
@@ -413,6 +425,8 @@ def multiplot3(x,y,z,figure=False, param = False):
 			ax.plot(x[j], y[j], z[j], mci,label=leg)
 
 #		ax.plot(x[j], y[j], z[j],mci,label=leg)
+
+		ax.plot(x[j], y[j], z[j],mci)
 	Options(ax,(x[0],y[0],z[0]),param)
 	return (fig,ax)
 
