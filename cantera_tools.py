@@ -134,30 +134,39 @@ class chemreac():
 			else: 
 				print 'tuplet (T,P) is needed'
 			
-	def X(self,x=None):
-		return self.fraction_mol(x=x)
-	def fraction_mol(self,x=None):
+	def X(self,x=None,reset=True):
+		return self.fraction_mol(x=x,reset=reset)
+	def fraction_mol(self,x=None,reset=True):
 		if x is None: 
 			return self.gas.X
 		else:
-			if len(x) == self.n_species:self.gas.X = x
-			else: print 'some species are missing'
+			if len(x) == self.n_species:
+				self.gas.X = x
+				if reset is True:self.reset()
+			else: 
+				print 'some species are missing'
 
-	def fraction_mass(self,y=None):
+	def fraction_mass(self,y=None,reset=True):
 		if y is None: 
 			return self.gas.Y
 		else:
-			if len(y) == self.n_species:self.gas.Y = y
-			else: print 'some species are missing'
-	def Y(self,y=None):
-		return self.fraction_mass(y=y)
+			if len(y) == self.n_species:
+				self.gas.Y = y
+				if reset is True:self.reset()
+			else: 
+				print 'some species are missing'
+	def Y(self,y=None,reset=True):
+		return self.fraction_mass(y=y,reset=reset)
 
-	def specific_mole(self,z=None):
+	def specific_mole(self,z=None,reset=True):
 		if z is None: 
 			return self.gas.Y/self.gas.molecular_weights
 		else:
-			if len(z) == self.n_species:self.gas.Y = z*self.gas.molecular_weights
-			else: print 'some species are missing'
+			if len(z) == self.n_species:
+				self.gas.Y = z*self.gas.molecular_weights
+				if reset is True:self.reset()
+			else: 
+				print 'some species are missing'
 	def Z(self,z=None):return self.specific_mole(z=z)
 
 
@@ -192,4 +201,4 @@ class chemreac():
 
 	def __getitem__(self,key):
 		return self.list[key]
-	
+

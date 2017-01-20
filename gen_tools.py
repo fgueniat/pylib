@@ -361,7 +361,7 @@ def RPN(expression,input_):
 
 def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15, random_select=0.15, mutate=0.1, new = 0.05, verbose = False,  npar = 0,parameters = False):
 	""" Evolution of a population. 
-	* f_fit: fitness function, ie the function that computes the score -reward- associated to an individu.
+	* f_fit: fitness function, ie the function that computes the score -cost- associated to an individu.
 	* f_mut: mutation function, ie the function that describes how mutation of an individu is done.
 	* f_cross: crossover function, ie the function that describes how breeding betwin two individus is done.
 	* retain: fraction of best individuals of the population which is kept.
@@ -396,6 +396,7 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15
 
 	# keep the best
 	retain_length = int(len(scores)*retain)
+	if retain_length<3:retain_length=3
 	parents = scores[:retain_length]
 
 	# randomly add other individuals to
@@ -418,8 +419,8 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15
 	desired_length = len(pop) - parents_length
 	children = []
 	while len(children) < desired_length:
-		male = randint(0, parents_length-1)
-		female = randint(0, parents_length-2)
+		male = np.random.randint(0, parents_length-1)
+		female = np.random.randint(0, parents_length-2)
 		if male != female:
 			child = f_cross(parents,male,female)
 			children.append(child)
@@ -430,4 +431,3 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15
 
 	parents.extend(children)
 	return parents,scores_
-

@@ -51,7 +51,7 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
 		print ' obserabl def as y=sum alpha_i x_i'
 		f_def_obs = lambda x,alpha: np.dot(alpha,x)
 	#alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time))
-	alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-9,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
+	alpha = solve(cost_gramian,alpha_0,method = 'BFGS', tol = 1.e-9,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
 	return alpha
 
 def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False,nt = False, ny=False, nx = False, measure=None,verbose = False):
@@ -100,7 +100,7 @@ def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2):
 			y[ix,ny:] = fobs(dx[it,:,ix,1]).flatten()
 #		y=y-np.mean(y)
 		W = W+dt*np.dot(y,y.T) # equiv to W = W + y*y.T
-	W = W/(4.*eps_*eps_);
+	W = W/(4.*eps_*eps_)
 	W = W+W.T
 	return W
 
