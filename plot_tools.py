@@ -697,7 +697,7 @@ def Options(ax,X,param=False, cbar=False):
 		if param.z_tick_label is None: ax.zaxis.set_visible(True)
 
 	if all(legend is False for legend in param.legend) is False:
-		ax.legend()
+		ax.legend(loc='best')
 	if is3d is False:	
 		if param.tight_layout is True:
 			try:

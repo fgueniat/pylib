@@ -37,7 +37,7 @@ def response_(alphas=None,dx=None,f_def_obs=None,time=None,eps_=None,rho=1.e-3):
 	for alpha in alphas:
 		S.append(J(alpha))
 	return S
-def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False):
+def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False,offset = 0.2):
 	if dx is None:
 		print 'run f_explore first'
 		return -1
@@ -51,17 +51,17 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
 		print ' obserabl def as y=sum alpha_i x_i'
 		f_def_obs = lambda x,alpha: np.dot(alpha,x)
 	#alpha = solve(cost_gramian,alpha_0,method = 'Nelder-Mead', tol = 1.e-6,args = (f_def_obs,rho,dx,eps_,time))
-	alpha = solve(cost_gramian,alpha_0,method = 'BFGS', tol = 1.e-9,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,verbose))
+	alpha = solve(cost_gramian,alpha_0,method = 'BFGS', tol = 1.e-9,args = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,offset,verbose))
 	return alpha
 
-def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False,nt = False, ny=False, nx = False, measure=None,verbose = False):
+def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False, nt = False, ny=False, nx = False, measure=None, offset = 0.2, verbose = False):
 	#def obs
 	if f_def_obs is False:fobs = lambda xx: xx[1] - np.sum([xx[0]**a for a in alpha])
 	else:fobs = lambda x: f_def_obs(x,alpha)
 	if nt is False:nt = np.size(time)
 	if nx is False:nx = np.size(dx[0,:,0,0])
 	if ny is False:ny = np.size(fobs(dx[0,:,0,0]))
-	w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny)
+	w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny, offset = offset)
 	if measure is None or measure not in measures_possible:
 		measure = 'trace'
 	
