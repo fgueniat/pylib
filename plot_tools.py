@@ -468,8 +468,12 @@ def pcolor(data,param=False):
 		y = np.arange(z.shape[0])
 		x = np.arange(z.shape[1])
 	if param.zlim is False:
-		zmin = np.min(z)
-		zmax = np.max(z)
+		if param.clim is False:
+			zmin = np.min(z)
+			zmax = np.max(z)
+		else:
+			zmin = param.clim[0]
+			zmax = param.clim[1]
 	else:
 		zmin = param.zlim[0]
 		zmax = param.zlim[1]
@@ -479,10 +483,10 @@ def pcolor(data,param=False):
 	ax = fig.add_subplot(111)
 	if param.clim is not False:
 		cmin = param.clim[0]
-		cmax=param.clim[1]
+		cmax = param.clim[1]
 	else:
 		cmin = zmin
-		cmax=zmax
+		cmax = zmax
 
 	if param.pcol_type == 'pcolor':
 		if param.c_scale == 'log':
@@ -676,7 +680,7 @@ def Options(ax,X,param=False, cbar=False):
 		cbar.set_label(param.c_label,fontsize=param.fontsize)
 		if param.cbar_tick_label is False:
 			if param.clim is False:
-				clabel = np.linspace(np.min(x),np.max(c),3)
+				clabel = np.linspace(np.min(c),np.max(c),3)
 			else:
 				clabel = np.linspace(param.clim[0],param.clim[1],3)
 				

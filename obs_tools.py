@@ -8,7 +8,7 @@ from cantera_tools import chemreac
 
 measures_possible = ['cond', 'det','trace']
 
-def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False,offset = 0.2,method = 'BFGS',isrecuit=True):
+def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False,offset = 0.2,method = 'BFGS',isrecuit=True, niter=50,maxiter=[2000,250],n_recuit=50):
 	'''Identify geometric constra ins based on observability analysis'''
 	if dx is None:
 		print 'run f_explore first'
@@ -23,14 +23,20 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
 		print ' obserabl def as y=sum alpha_i x_i'
 		f_def_obs = lambda x,alpha: np.dot(alpha,x)
 	argums = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,offset,verbose)
+	if type(maxiter) is not list: 
+		if type(maxiter) is int or type(maxiter) is float:
+			maxiter=[maxiter]
+		else:
+			print 'maxiter ill defined'
+			return -1
 	if isrecuit is True:#Annealing
-		opt = {'maxiter':100}
+		opt = {'maxiter':maxiter[1]}
 		min_kwargs = {'args':argums,'method':method,'options':opt}
 		np.random.seed(111111)
-		alpha_0 = recuit(cost_gramian,alpha_0,niter=20,minimizer_kwargs = min_kwargs,T=3.)
+		alpha_0 = recuit(cost_gramian,alpha_0,niter=n_recuit,minimizer_kwargs = min_kwargs,T=10.)
 		np.random.seed()
 		alpha_0 = alpha_0.x
-	opt = {'maxiter':1500}
+	opt = {'maxiter':maxiter[0]}
 	#if no annealing, we finish with a regular minimization
 	a = solve(cost_gramian,alpha_0,method = method, tol = 1.e-6,args = argums,options=opt)
 	return a
@@ -63,35 +69,6 @@ def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=Fals
 	return J
 
 
-def d_cg(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False, nt = False, ny=False, nx = False, measure=None, offset = 0.2, verbose = False):
-	'''Compute the gramian and its  measure'''
-	# parameters
-	if f_def_obs is False:#def obs
-		fobs = lambda xx: xx[1] - np.sum([xx[0]**a for a in alpha])
-	else:fobs = lambda x: f_def_obs(x,alpha)
-	if nt is False:nt = np.size(time)
-	if nx is False:nx = np.size(dx[0,:,0,0])
-	if ny is False:ny = np.size(fobs(dx[0,:,0,0]))
-	#
-	#computation of the gramian
-	w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny, offset = offset)
-	if measure is None or measure not in measures_possible:
-		measure = 'trace'
-	norm_type = 2	
-	if verbose is True:
-		print 'gramian'
-		print w
-		print 'Measure of the gramian:' + str(1./(M(w,measure=measure)))
-		print 'norm: ' + str(np.linalg.norm(alpha,ord=norm_type)) + ' and rho: ' + str(rho)
-		print 'regularization: ' + str(np.linalg.norm(alpha,ord=norm_type) * rho)
-
-	#
-	# cost
-	J =1./ M(w,measure = measure) + rho * np.linalg.norm(alpha,ord=norm_type)
-	return J
-
-
-
 def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2):
 	''' Empirical gramian'''
 	# parameters
@@ -117,12 +94,14 @@ def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2):
 		dt = time[it]-time[it-1]
 		y=np.zeros((nx,2*ny))
 		for ix in xrange(nx):# observation
-			y[ix,0:ny] = fobs(dx[it,:,ix,0]).flatten()
-			y[ix,ny:] = fobs(dx[it,:,ix,1]).flatten()
+			if type(eps_) is float:epsi=2*eps_
+			else:epsi=2*eps_[ix]
+			y[ix,0:ny] = fobs(dx[it,:,ix,0]).flatten()/epsi
+			y[ix,ny:] = fobs(dx[it,:,ix,1]).flatten()/epsi
 		# contribution of each observation to the gramian	
 		W = W+dt*np.dot(y,y.T) # equiv to W = W + y*y.T
 	#re normalization
-	W = W/(4.*eps_*eps_)
+	#W = W/(4.*eps_*eps_)
 	W = W+W.T
 	return W
 
@@ -138,30 +117,35 @@ def f_explore(fdyn,x0,time,eps_ = False):
 	dx = np.zeros((nt,nx,nx,2))
 	if isinstance(fdyn,chemreac):#is fdyn a "cantera" object
 		# for each species/comp of the state space
-		for i in xrange(nx):
+		for ix in xrange(nx):
 			#perturbation
 			base = np.zeros(nx)
-			base[i] = eps_
+			if type(eps_) is float:base[ix] = eps_
+			else:base[ix]=eps_[ix]
 			#def new reactions and integrate them
-			reaction_p = chemreac(cti=fdyn.cti,V=fdyn.V,problem = fdyn.problem,concentrations=x0+base)
+			reaction_p = chemreac(cti=fdyn.cti,V=fdyn.V,problem = fdyn.problem)
+			reaction_p.TP(fdyn.tpinit,reset=False)
+			reaction_p.concentrations(c=x0+base,reset=True)
 			reaction_p.integrate(time=time)
 			xp = np.array(reaction_p.h_z)[1:,:]
-			reaction_m = chemreac(cti=fdyn.cti,V=fdyn.V,problem = fdyn.problem,concentrations=x0-base)
+			reaction_m = chemreac(cti=fdyn.cti,V=fdyn.V,problem = fdyn.problem)
+			reaction_m.TP(fdyn.tpinit,reset=False)
+			reaction_m.concentrations(c=x0-base,reset=True)
 			reaction_m.integrate(time=time)
 			xm = np.array(reaction_m.h_z)[1:,:]
 			# update the data
-			dx[:,:,i,0] = xp
-			dx[:,:,i,1] = xm
+			dx[:,:,ix,0] = xp
+			dx[:,:,ix,1] = xm
 	else:# then it is a dynamical system
-		for i in xrange(nx):
+		for ix in xrange(nx):
 			base = np.zeros(nx)
-			base[i] = eps_
+			base[ix] = eps_
 			xp = ode(fdyn,time,x0+base)
 			xm = ode(fdyn,time,x0-base)
-			dx[:,:,i,0] = xp
-			dx[:,:,i,1] = xm
+			dx[:,:,ix,0] = xp
+			dx[:,:,ix,1] = xm
 	return dx
-def f_explore_temp(fdyn,x0,time,eps_ = False):
+def f_explore_save(fdyn,x0,time,eps_ = False):
 	''' compute the perturbation around a given trajectory  defined by the initial conditions x0.
 	output has dimensions (nt x nx) x (nx x 2).
 	(nt x nx) trajectories

@@ -51,7 +51,7 @@ class chemreac():
 		self.h_y = [self.Y()]
 		self.h_z = [self.Z()]
 		self.h_rates = [self.rates()]
-
+		self.tpinit = self.gas.TP
 		self.set_case(self.problem)
 
 	def set_case(self,problem):
