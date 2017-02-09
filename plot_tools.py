@@ -526,8 +526,8 @@ def Options(ax,X,param=False, cbar=False):
 			zm = param.zlim[0]
 			zM = param.zlim[1]
 	#set scales
-	ax.set_xscale(param.x_scale,lintreshx = param.xlintresh)
-	ax.set_yscale(param.y_scale,lintreshy = param.ylintresh)
+	ax.set_xscale(param.x_scale,linthreshx = param.xlintresh)
+	ax.set_yscale(param.y_scale,linthreshy = param.ylintresh)
 	if is3d is True:
 		ax.set_zscale(param.z_scale)
 	ax.set_xlabel(param.x_label,None,None,fontsize=param.fontsize)
