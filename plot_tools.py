@@ -364,16 +364,6 @@ def flim1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
 	im.axes.figure.canvas.draw()
 	return (fig,ax,im)
 
-def save(path,i=-1):
-	if i == -1:
-		s = path
-	else:
-		s = path + 'temp_0000'
-		s2 = str(i)
-		s = s[:-len(s2)] + s2
-		s = s + '.png'
-	pyplot.savefig(s)
-
 
 def pcolor(data,param=False):
 	if param is False:
@@ -535,8 +525,9 @@ def Options(ax,X,param=False, cbar=False):
 			ax.set_zlim(  [ param.zlim[0],param.zlim[1] ]  )
 			zm = param.zlim[0]
 			zM = param.zlim[1]
-
-
+	#set scales
+	ax.set_xscale(param.x_scale,lintreshx = param.xlintresh)
+	ax.set_yscale(param.y_scale,lintreshy = param.ylintresh)
 	if is3d is True:
 		ax.set_zscale(param.z_scale)
 	ax.set_xlabel(param.x_label,None,None,fontsize=param.fontsize)
@@ -570,6 +561,7 @@ def Options(ax,X,param=False, cbar=False):
 			elif param.y_scale == 'symlog':
 				print ym,yM
 				if ym<0:
+					print '$$$$$$$$$$$$$$$44'
 					ylabel = np.array([ym,0,yM])
 					print ylabel
 				else:
@@ -581,8 +573,7 @@ def Options(ax,X,param=False, cbar=False):
 		ax.set_yticks(ylabel)
 		ax.set_yticklabels(ax.get_yticks(),None,None,fontsize=param.ticksize)
 		ax.yaxis.set_major_formatter(mtick.FormatStrFormatter(param.ax_y_format))
-	ax.axes.set_xscale(param.x_scale,lintreshx = param.xlintresh)
-	ax.axes.set_yscale(param.y_scale,lintreshy = param.ylintresh)
+
 	if is3d is True:
 		if param.z_tick_label is None:
 			ax.zaxis.set_visible(False)
