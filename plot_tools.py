@@ -536,8 +536,7 @@ def Options(ax,X,param=False, cbar=False):
 			zm = param.zlim[0]
 			zM = param.zlim[1]
 
-	ax.set_xscale(param.x_scale,lintreshx = param.xlintresh)
-	ax.set_yscale(param.y_scale,lintreshy = param.ylintresh)
+
 	if is3d is True:
 		ax.set_zscale(param.z_scale)
 	ax.set_xlabel(param.x_label,None,None,fontsize=param.fontsize)
@@ -565,7 +564,6 @@ def Options(ax,X,param=False, cbar=False):
 	if param.y_tick_label is None:
 		ax.yaxis.set_visible(False)
 	else:
-		print ym,yM
 		if param.y_tick_label is False:
 			if param.y_scale == 'log':
 				ylabel = np.exp(np.linspace(np.log(ym),np.log(yM),3))
@@ -584,7 +582,8 @@ def Options(ax,X,param=False, cbar=False):
 		ax.set_yticks(ylabel)
 		ax.set_yticklabels(ax.get_yticks(),None,None,fontsize=param.ticksize)
 		ax.yaxis.set_major_formatter(mtick.FormatStrFormatter(param.ax_y_format))
-
+	ax.axes.set_xscale(param.x_scale,lintreshx = param.xlintresh)
+	ax.axes.set_yscale(param.y_scale,lintreshy = param.ylintresh)
 	if is3d is True:
 		if param.z_tick_label is None:
 			ax.zaxis.set_visible(False)
