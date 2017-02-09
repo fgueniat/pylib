@@ -50,10 +50,24 @@ class chemreac():
 		self.h_x = [self.X()]
 		self.h_y = [self.Y()]
 		self.h_z = [self.Z()]
+		try:self.h_volume = [self.reactor.volume]
+		except:self.h_volume = [self.V]
 		self.h_rates = [self.rates()]
 		self.tpinit = self.gas.TP
 		self.set_case(self.problem)
-
+		self.conv_y2c= self.h_concentrations[0]/(self.h_y[0]/(self.h_volume[0]*self.gas.molecular_weights))
+	def y2c(self,y=None,v=None):
+		if y is None: y = self.Y()
+		if v is None:v = self.volume()
+		c = self.conv_y2c * y / (v*self.gas.molecular_weights)
+		return c
+	def y2t(self,y=None,v=None,p=None):
+		if y is None: y = self.Y()
+		if v is None:v = self.volume()
+		if p is None: p = self.pressure()
+		c = self.y2c(y=y,v=v)
+		T = p/(np.sum(c)*ct.gas_constant)
+		return T
 	def set_case(self,problem):
 		''' function that set up the scenario'''
 		if isinstance(problem[0],str) is False: problem[0] = '0D'
@@ -100,7 +114,9 @@ class chemreac():
 				self.h_z.append(self.Z())
 				self.h_T.append(self.temperature())
 				self.h_P.append(self.pressure())
+				self.h_volume.append(self.volume())
 				self.h_rates.append(self.rates())
+				
 				
 	def which(self,i=None):
 		if i is None:
@@ -167,11 +183,12 @@ class chemreac():
 				if reset is True:self.reset()
 			else: 
 				print 'some species are missing'
-	def Z(self,z=None):return self.specific_mole(z=z)
+	def Z(self,z=None,reset=True):return self.specific_mole(z=z,reset=reset)
 
 
 	def temperature(self): return self.gas.T
 	def pressure(self): return self.gas.P
+	def volume(self): return self.reactor.volume
 	def rates(self): return self.gas.net_production_rates
 	def time_series(self,quantity=False,i=0):
 		# check for errors in inputs
@@ -189,9 +206,11 @@ class chemreac():
 		elif quantity.lower() == 'temperature': return self.ts_temperature()		
 		elif quantity.lower() == 'p': return self.ts_pressure()		
 		elif quantity == 'pressure': return self.ts_pressure()		
+		elif quantity == 'volume': return self.ts_volume()		
 		else: return self.ts_temperature()
 
 	def ts_pressure(self):return np.array(self.h_P).flatten()
+	def ts_volume(self):return np.array(self.h_volume).flatten()
 	def ts_temperature(self):return np.array(self.h_T).flatten()
 	def ts_concentrations(self,i=0):return np.array(self.h_concentrations)[:,i]
 	def ts_X(self,i=0):return np.array(self.h_x)[:,i]
@@ -201,4 +220,10 @@ class chemreac():
 
 	def __getitem__(self,key):
 		return self.list[key]
+
+
+def compute_T(P,V,zs,r):
+	R = 8.31
+	T = np.sum([P*V/(n*R) for n in ns])
+	return T
 

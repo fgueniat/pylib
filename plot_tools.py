@@ -9,93 +9,9 @@ from os.path import expanduser
 from matplotlib.colors import LogNorm
 
 
-class Paradraw2():
-	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False):
-
-#plot style
-		self.marks_ = marks
-		self.mark_ = self.marks[0]
-		self.thickness_ = thickness
-		self.markeredge_ = True
-		self.colmap_ = colmap
-		self.ncont_ = ncont
-		self.pcol_type_ = pcol_type
-		self.bar_col_ = bar_col
-		self.transparancy_ = transparancy
-		self.tight_layout_ = tight_layout
-		self.stem_  = stem
-#axis labels
-		self.x_label_ = x_label
-		self.y_label_ = y_label
-		self.z_label_ = z_label
-		self.c_label_ = c_label
-		self.x_tick_label_ = x_tick_label
-		self.y_tick_label_ = y_tick_label
-		self.z_tick_label_ = z_tick_label
-		self.cbar_tick_label_ = cbar_tick_label
-		self.title_ = title
-
-#axis style
-		self.x_scale_ = x_scale
-		self.y_scale_ = y_scale
-		self.z_scale_ = z_scale
-		self.c_scale_ = c_scale
-
-#axis limits
-		self.xlim_ = xlim
-		self.ylim_ = ylim
-		self.zlim_ = zlim
-		self.clim_ = clim
-
-		self.iscolorbar_ = iscolorbar
-
-#fonts
-		self.fontsize_ = fontsize
-		self.ticksize_ = ticksize
-		self.cbformat_ = cbformat
-		self.ax_x_format_ = ax_x_format 
-		self.ax_y_format_ = ax_y_format
-		self.ax_z_format_ = ax_z_format
-		#other exemples : '%.2f'
-		self.figure_ = figure
-	def __len__(self):
-		return 1
-	def __getitem__(self, key):
-		return self
-
-def x_label(self,label=False):
-	if label is False: return self.x_label
-	else: self.x_label_ = label
-def y_label(self,label=False):
-	if label is False: return self.y_label
-	else: self.y_label_ = label
-def z_label(self,label=False):
-	if label is False: return self.z_label
-	else: self.z_label_ = label
-def c_label(self,label=False):
-	if label is False: return self.c_label
-	else: self.c_label_ = label
-
-def xlim(self,lim=False):
-	if lim is False: return self.xlim_
-	else: self.xlim_ = lim
-def ylim(self,lim=False):
-	if lim is False: return self.ylim_
-	else: self.ylim_ = lim
-def zlim(self,lim=False):
-	if lim is False: return self.zlim_
-	else: self.zlim_ = lim
-def clim(self,lim=False):
-	if lim is False: return self.clim_
-	else: self.clim_ = lim
-
-
-	@property
-	def help(self):
-		return self.__dict__
 
 class Paradraw():
-	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False]):
+	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=0.,ylintresh=0.,zlintresh=0.,clintresh=0.,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
 
 
 #plot style
@@ -112,6 +28,7 @@ class Paradraw():
 		self.stem  = stem
 #legend
 		self.legend=legend
+		self.legloc = legloc
 #axis labels
 		self.x_label = x_label
 		self.y_label = y_label
@@ -128,6 +45,10 @@ class Paradraw():
 		self.y_scale = y_scale
 		self.z_scale = z_scale
 		self.c_scale = c_scale
+		self.xlintresh = xlintresh
+		self.ylintresh = ylintresh
+		self.zlintresh = zlintresh
+		self.clintresh = clintresh
 
 #axis limits
 		self.xlim = xlim
@@ -615,8 +536,8 @@ def Options(ax,X,param=False, cbar=False):
 			zm = param.zlim[0]
 			zM = param.zlim[1]
 
-	ax.set_xscale(param.x_scale)
-	ax.set_yscale(param.y_scale)
+	ax.set_xscale(param.x_scale,lintreshx = param.xlintresh)
+	ax.set_yscale(param.y_scale,lintreshy = param.ylintresh)
 	if is3d is True:
 		ax.set_zscale(param.z_scale)
 	ax.set_xlabel(param.x_label,None,None,fontsize=param.fontsize)
@@ -630,6 +551,9 @@ def Options(ax,X,param=False, cbar=False):
 		if param.x_tick_label is False:
 			if param.x_scale == 'log':
 				xlabel = np.exp(np.linspace(np.log(xm),np.log(xM),3))
+			elif param.x_scale == 'symlog':
+				if xm<0:xlabel = np.array([xm,0,xM])
+				else:xlabel = np.exp(np.linspace(np.log(xm),np.log(xM),3))
 			else:
 				xlabel = np.linspace(xm,xM,3)
 		else:
@@ -641,9 +565,18 @@ def Options(ax,X,param=False, cbar=False):
 	if param.y_tick_label is None:
 		ax.yaxis.set_visible(False)
 	else:
+		print ym,yM
 		if param.y_tick_label is False:
 			if param.y_scale == 'log':
 				ylabel = np.exp(np.linspace(np.log(ym),np.log(yM),3))
+			elif param.y_scale == 'symlog':
+				print ym,yM
+				if ym<0:
+					print '$$$$$$$$$$$$$$$44'
+					ylabel = np.array([ym,0,yM])
+					print ylabel
+				else:
+					ylabel = np.exp(np.linspace(np.log(ym),np.log(yM),3))
 			else:
 				ylabel = np.linspace(ym,yM,3)
 		else:
@@ -701,7 +634,7 @@ def Options(ax,X,param=False, cbar=False):
 		if param.z_tick_label is None: ax.zaxis.set_visible(True)
 
 	if all(legend is False for legend in param.legend) is False:
-		ax.legend(loc='best')
+		ax.legend(loc=param.legloc)
 	if is3d is False:	
 		if param.tight_layout is True:
 			try:
