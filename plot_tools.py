@@ -570,7 +570,6 @@ def Options(ax,X,param=False, cbar=False):
 			elif param.y_scale == 'symlog':
 				print ym,yM
 				if ym<0:
-					print '$$$$$$$$$$$$$$$44'
 					ylabel = np.array([ym,0,yM])
 					print ylabel
 				else:
