@@ -11,12 +11,12 @@ from matplotlib.colors import LogNorm
 
 
 class Paradraw():
-	def __init__(self,marks="-k",thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=0.,ylintresh=0.,zlintresh=0.,clintresh=0.,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
+	def __init__(self,marks=['-'], colors = ['k'], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
 
 
 #plot style
 		self.marks = marks
-		self.mark = self.marks[0]
+		self.colors = colors
 		self.thickness = thickness
 		self.markeredge = True
 		self.colmap = colmap
@@ -155,14 +155,15 @@ def plot3(x,y,z, param = False,figure=False):
 	else:
 		fig = figure[0]
 		ax = figure[1]
-	mci = param.marks[0]
+	mi = param.marks[0]
+	ci = param.colors[0]
 #		if param.markeredge is False:
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 	if param.markeredge is False:
-		ax.plot(x, y, z, mci, markeredgecolor='none',label=param.legend[0])
+		ax.plot(x, y, z, linestyle = mi, color = ci, markeredgecolor='none',label=param.legend[0])
 	else:
-		ax.plot(x, y, z, mci, label=param.legend[0])
+		ax.plot(x, y, z, linestyle = mi, color = ci, label=param.legend[0])
 	Options(ax,(x,y,z),param)
 	return (fig,ax)
 
@@ -284,9 +285,13 @@ def multiplot2(x,y,param=False):
 		if j==0:
 			transparancy = 1.0
 		try:
-			mci = param.marks[j]
+			mi = param.marks[j]
 		except:
-			mci = '-k'
+			mi = '-'
+		try:
+			ci = param.colors[j]
+		except:
+			ci = 'k'
 		try:
 			linewidth = param.thickness[j]
 		except:
@@ -296,11 +301,11 @@ def multiplot2(x,y,param=False):
 		except:
 			leg=False
 		if param.markeredge is False:
-			if param.stem is False:ax.plot(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
-			else: ax.stem(x[j],y[j],mci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+			if param.stem is False:ax.plot(x[j],y[j],linestyle = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+			else: ax.stem(x[j],y[j],linestyle = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
 		else:
-			if param.stem is False:ax.plot(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy,label=leg)
-			else:ax.stem(x[j],y[j],mci,linewidth = linewidth,alpha=transparancy,label=leg)
+			if param.stem is False:ax.plot(x[j],y[j],linestyle = mi, color = ci, linewidth = linewidth,alpha=transparancy,label=leg)
+			else:ax.stem(x[j],y[j],linestyle = mi, color = ci,linewidth = linewidth,alpha=transparancy,label=leg)
 	
 	ax.set_xlabel(param.x_label)
 	ax.set_ylabel(param.y_label)
@@ -321,9 +326,13 @@ def multiplot3(x,y,z,figure=False, param = False):
 	for i in range(0,len(x)):
 		j = len(x)-i-1
 		try:
-			mci = param.marks[j]
+			mi = param.marks[j]
 		except:
-			mci = '-k'
+			mi = '-'
+		try: 
+			ci = param.colors[j]
+		except:
+			ci = 'k'
 		try:
 			leg=param.legend[j]
 		except:
@@ -332,13 +341,13 @@ def multiplot3(x,y,z,figure=False, param = False):
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 		if param.markeredge is False:
-			ax.plot(x[j], y[j], z[j], mci, markeredgecolor='none',label=leg)
+			ax.plot(x[j], y[j], z[j],linestyle = mi, color = ci, markeredgecolor='none',label=leg)
 		else:
-			ax.plot(x[j], y[j], z[j], mci,label=leg)
+			ax.plot(x[j], y[j], z[j], linestyle = mi, color = ci,label=leg)
 
 #		ax.plot(x[j], y[j], z[j],mci,label=leg)
 
-		ax.plot(x[j], y[j], z[j],mci)
+#		ax.plot(x[j], y[j], z[j],mci)
 	Options(ax,(x[0],y[0],z[0]),param)
 	return (fig,ax)
 
@@ -442,7 +451,7 @@ def multiplot2bis(data,param=False):
 	pylab.ion()
 	fig = pylab.figure()
 	ax = fig.add_subplot(111)
-	ax.plot( x, y, param.mark)
+	ax.plot( x, y, linestyle = param.marks[0],color = param.colors[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
 
@@ -454,9 +463,9 @@ def rawplot(data,param,fig,ax):
 	if param is False:
 		param = Paradraw()
 	if param.markeredge is False:
-		ax.plot( x, y, param.mark, markeredgecolor='none',linewidth = param.thickness[0])
+		ax.plot( x, y, linestyle = param.marks[0], color=param.colors[0],markeredgecolor='none',linewidth = param.thickness[0])
 	else:
-		ax.plot( x, y, param.mark,linewidth = param.thickness[0])
+		ax.plot( x, y, linestyle = param.marks[0], color=param.colors[0],linewidth = param.thickness[0])
 
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
@@ -476,11 +485,11 @@ def plot2(data,param=False):
 		fig = param.figure[0]
 		ax = param.figure[1]
 	if param.markeredge is False:
-		if param.stem is False:ax.plot( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, param.marks[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], color = param.colors[0],markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], color = param.colors[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
 	else:
-		if param.stem is False:ax.plot( x, y, param.marks[0],linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, param.marks[0],linewidth = param.thickness[0],label=param.legend[0])
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
 
@@ -559,11 +568,8 @@ def Options(ax,X,param=False, cbar=False):
 			if param.y_scale == 'log':
 				ylabel = np.exp(np.linspace(np.log(ym),np.log(yM),3))
 			elif param.y_scale == 'symlog':
-				print ym,yM
 				if ym<0:
-					print '$$$$$$$$$$$$$$$44'
 					ylabel = np.array([ym,0,yM])
-					print ylabel
 				else:
 					ylabel = np.exp(np.linspace(np.log(ym),np.log(yM),3))
 			else:
