@@ -11,12 +11,13 @@ from matplotlib.colors import LogNorm
 
 
 class Paradraw():
-	def __init__(self,marks=['-'], colors = ['k'], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
+	def __init__(self,marks=['-'], colors = ['k'], markers = [''], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
 
 
 #plot style
 		self.marks = marks
 		self.colors = colors
+		self.markers = markers
 		self.thickness = thickness
 		self.markeredge = True
 		self.colmap = colmap
@@ -79,9 +80,6 @@ class Paradraw():
 
 	def help(self):
 		return self.__dict__
-def help():
-	s = "Paradraw: \n marks='-k',x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', \n colmap = 'hot_r', \n xlim = False, ylim = False,zlim = False,clim = False, \n x_scale = 'linear',y_scale = 'linear',z_scale = 'linear', \n title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.1e',ax_y_format = '%.1e',ax_z_format = '%.1e',cbformat = '%.1e', \n figure=False, \n bar_col = [0.0,0.0,1.0], \n transparancy = False, \n ncont = 15,pcol_type = 'contourf' "
-	print(s)
 				
 def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
 	p = np.argsort(z)
@@ -155,15 +153,16 @@ def plot3(x,y,z, param = False,figure=False):
 	else:
 		fig = figure[0]
 		ax = figure[1]
-	mi = param.marks[0]
+	mi = param.markers[0]
+	sty = param.marks[0]
 	ci = param.colors[0]
 #		if param.markeredge is False:
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 	if param.markeredge is False:
-		ax.plot(x, y, z, linestyle = mi, color = ci, markeredgecolor='none',label=param.legend[0])
+		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, markeredgecolor='none',label=param.legend[0])
 	else:
-		ax.plot(x, y, z, linestyle = mi, color = ci, label=param.legend[0])
+		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, label=param.legend[0])
 	Options(ax,(x,y,z),param)
 	return (fig,ax)
 
@@ -285,9 +284,13 @@ def multiplot2(x,y,param=False):
 		if j==0:
 			transparancy = 1.0
 		try:
-			mi = param.marks[j]
+			sty = param.marks[j]
 		except:
-			mi = '-'
+			sty = '-'
+		try:
+			mi = param.markers[j]
+		except:
+			mi = ''
 		try:
 			ci = param.colors[j]
 		except:
@@ -301,11 +304,11 @@ def multiplot2(x,y,param=False):
 		except:
 			leg=False
 		if param.markeredge is False:
-			if param.stem is False:ax.plot(x[j],y[j],linestyle = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
-			else: ax.stem(x[j],y[j],linestyle = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+			if param.stem is False:ax.plot(x[j],y[j],linestyle = sty, marker = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+			else: ax.stem(x[j],y[j],linestyle = sty, marker = mi, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
 		else:
-			if param.stem is False:ax.plot(x[j],y[j],linestyle = mi, color = ci, linewidth = linewidth,alpha=transparancy,label=leg)
-			else:ax.stem(x[j],y[j],linestyle = mi, color = ci,linewidth = linewidth,alpha=transparancy,label=leg)
+			if param.stem is False:ax.plot(x[j],y[j],linestyle = sty, marker = mi, color = ci, linewidth = linewidth,alpha=transparancy,label=leg)
+			else:ax.stem(x[j],y[j],linestyle = sty, marker = mi, color = ci,linewidth = linewidth,alpha=transparancy,label=leg)
 	
 	ax.set_xlabel(param.x_label)
 	ax.set_ylabel(param.y_label)
@@ -326,9 +329,13 @@ def multiplot3(x,y,z,figure=False, param = False):
 	for i in range(0,len(x)):
 		j = len(x)-i-1
 		try:
-			mi = param.marks[j]
+			mi = param.markers[j]
 		except:
-			mi = '-'
+			mi = ''
+		try:
+			sty = param.marks[j]
+		except:
+			sty = '-'
 		try: 
 			ci = param.colors[j]
 		except:
@@ -341,9 +348,9 @@ def multiplot3(x,y,z,figure=False, param = False):
 #		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
 #		else:
 		if param.markeredge is False:
-			ax.plot(x[j], y[j], z[j],linestyle = mi, color = ci, markeredgecolor='none',label=leg)
+			ax.plot(x[j], y[j], z[j],linestyle = sty, marker = mi, color = ci, markeredgecolor='none',label=leg)
 		else:
-			ax.plot(x[j], y[j], z[j], linestyle = mi, color = ci,label=leg)
+			ax.plot(x[j], y[j], z[j], linestyle = sty, marker = mi, color = ci,label=leg)
 
 #		ax.plot(x[j], y[j], z[j],mci,label=leg)
 
@@ -451,7 +458,7 @@ def multiplot2bis(data,param=False):
 	pylab.ion()
 	fig = pylab.figure()
 	ax = fig.add_subplot(111)
-	ax.plot( x, y, linestyle = param.marks[0],color = param.colors[0])
+	ax.plot( x, y, linestyle = param.marks[0],color = param.colors[0], marker =param.markers[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
 
@@ -463,9 +470,9 @@ def rawplot(data,param,fig,ax):
 	if param is False:
 		param = Paradraw()
 	if param.markeredge is False:
-		ax.plot( x, y, linestyle = param.marks[0], color=param.colors[0],markeredgecolor='none',linewidth = param.thickness[0])
+		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],markeredgecolor='none',linewidth = param.thickness[0])
 	else:
-		ax.plot( x, y, linestyle = param.marks[0], color=param.colors[0],linewidth = param.thickness[0])
+		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],linewidth = param.thickness[0])
 
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
@@ -485,11 +492,11 @@ def plot2(data,param=False):
 		fig = param.figure[0]
 		ax = param.figure[1]
 	if param.markeredge is False:
-		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], color = param.colors[0],markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, linestyle = param.marks[0], color = param.colors[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0],markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
 	else:
-		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, linestyle = param.marks[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
 
