@@ -7,12 +7,16 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.ticker as mtick
 from os.path import expanduser
 from matplotlib.colors import LogNorm
+from scipy.stats import gaussian_kde
 
 
+
+##################################################################################
+#########################  Parameters  ###########################################
+##################################################################################
 
 class Paradraw():
 	def __init__(self,marks=['-'], colors = ['k'], markers = [''], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
-
 
 #plot style
 		self.marks = marks
@@ -40,7 +44,6 @@ class Paradraw():
 		self.z_tick_label = z_tick_label
 		self.cbar_tick_label = cbar_tick_label
 		self.title = title
-
 #axis style
 		self.x_scale = x_scale
 		self.y_scale = y_scale
@@ -50,7 +53,6 @@ class Paradraw():
 		self.ylintresh = ylintresh
 		self.zlintresh = zlintresh
 		self.clintresh = clintresh
-
 #axis limits
 		self.xlim = xlim
 		self.ylim = ylim
@@ -58,7 +60,6 @@ class Paradraw():
 		self.clim = clim
 
 		self.iscolorbar = iscolorbar
-
 #fonts
 		self.fontsize = fontsize
 		self.ticksize = ticksize
@@ -68,142 +69,72 @@ class Paradraw():
 		self.ax_z_format = ax_z_format
 		#other exemples : '%.2f'
 		self.figure = figure
+	
+	def help(self):
+		return self.__dict__	
+	
 	def __len__(self):
 		return 1
 	def __getitem__(self, key):
 		return self
+	
 	@property
 	def help(self):
 		return self.__dict__
 	@property
 	def r(self): self.figure=False
 
-	def help(self):
-		return self.__dict__
-				
-def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
-	p = np.argsort(z)
-	print(p.shape)
-	print(a.shape)
-	print(b.shape)
-	print(c.shape)
-	print(p.max())
-	macol = pyplot.cm.bwr(np.arange(z.size))
-	print(macol.shape)
-	pylab.ion()
-	if figure is False:
-		fig = pylab.figure()
-		ax = fig.add_subplot(111, projection='3d')
+
+##################################################################################
+############################  PLOT 2D  ###########################################
+##################################################################################
+
+def rawplot(data,param,fig,ax):
+	x = data[0]
+	y = data[1]
+	if param is False:
+		param = Paradraw()
+	if param.markeredge is False:
+		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],markeredgecolor='none',linewidth = param.thickness[0])
 	else:
-		fig = figure[0]
-		ax = figure[1]
-	ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
-	ax.set_xlabel(a_label)
-	ax.set_ylabel(b_label)
-	ax.set_zlabel(c_label)
+		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],linewidth = param.thickness[0])
 
-	return (fig,ax)
+	# set the limits of the plot to the limits of the data
+	Options(ax,(x,y),param)
 
-def plot3cluster(a,b,c,keys,codomain,order,figure=False,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
-	pylab.ion()
-	if figure is False:
-		fig = pylab.figure()
-		ax = fig.add_subplot(111, projection='3d')
-	else:
-		fig = figure[0]
-		ax = figure[1]
-	colbase = pyplot.cm.jet(np.arange(256))
-	colbase = colbase[np.int64(np.linspace(0,255,codomain.size)),:]
-	for i in range(codomain.size):
-		p = np.where(keys==codomain[order[i]-1])[0]
-		macol = np.array([np.random.random(),np.random.random(),np.random.random(),1.])
-		macol = colbase[i,:]
-		ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
-	ax.set_xlabel(a_label)
-	ax.set_ylabel(b_label)
-	ax.set_zlabel(c_label)
+	return fig,ax
 
-	return (fig,ax)
+def plot1(data,param=False):
+	if param is False:
+		param = Paradraw()
+	x = np.arange(len(data))
+	y = data
+	data2 = (x,y)
+	fig,ax = plot2(data2,param)
+	return fig,ax
 
-
-def plot3old(a,b,c,figure=False,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
-
-	pylab.ion()
-
-	if figure is False:
-		fig = pylab.figure()
-		ax = Axes3D(fig)
-	else:
-		fig = figure[0]
-		ax = figure[1]
-	ax.plot(a, b, c,mark_col)
-	ax.set_xlabel(a_label)
-	ax.set_ylabel(b_label)
-	ax.set_zlabel(c_label)
-	return (fig,ax)
-
-def plot3(x,y,z, param = False,figure=False):
-
+def plot2(data,param=False):
+	x = data[0]
+	y = data[1]
 	if param is False:
 		param = Paradraw()
 	pylab.ion()
-	if figure is False:
+	if param.figure is False:
 		fig = pylab.figure()
-		ax = Axes3D(fig)
+		ax = fig.add_subplot(111)
 	else:
-		fig = figure[0]
-		ax = figure[1]
-	mi = param.markers[0]
-	sty = param.marks[0]
-	ci = param.colors[0]
-#		if param.markeredge is False:
-#		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
-#		else:
+		fig = param.figure[0]
+		ax = param.figure[1]
 	if param.markeredge is False:
-		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, markeredgecolor='none',label=param.legend[0])
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0],markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
 	else:
-		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, label=param.legend[0])
-	Options(ax,(x,y,z),param)
-	return (fig,ax)
+		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
+		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
+	# set the limits of the plot to the limits of the data
+	Options(ax,(x,y),param)
 
-
-#def plot2(figure,a,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
-
-#	pylab.ion()
-#	if figure is False:
-#		fig, ax = pyplot.subplots()
-#	else:
-#		fig = figure[0]
-#		ax = figure[1]
-##	fig = pylab.figure()
-#	pylab.plot(a, b,mark_col)
-#	return (fig,ax)
-
-#def plot1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
-
-#	a = range(0,np.size(b))
-#	if figure is False:
-#		fig, ax = pyplot.subplots()
-#	else:
-#		fig = figure[0]
-#		ax = figure[1]
-#	figure = (fig,ax)
-#	plot2(figure,a,b,mark_col,a_label,b_label)
-#	return  (fig,ax)
-
-
-def multiplot1bis(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
-	a = (np.array(range(0,b[0].size)),)
-	for i in range(1,len(b)):
-		a = a + (np.array(range(0,b[i].size)),)
-	if figure is False:
-		fig, ax = pyplot.subplots()
-	else:
-		fig = figure[0]
-		ax = figure[1]
-	figure = (fig,ax)
-	figure = multiplot2(figure,a,b,mark_col,a_label,b_label)
-	return figure
+	return fig,ax
 
 def multiplot1(y,param=False):
 	pylab.ion()
@@ -223,29 +154,6 @@ def multiplot1(y,param=False):
 	figure = multiplot2(x,y,param)
 	return figure
 
-def multiplot2bis(figure,a,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
-
-
-	pylab.ion()
-	if figure is False:
-		fig, ax = pyplot.subplots()
-	else:
-		fig = figure[0]
-		ax = figure[1]
-
-	for i in range(0,len(b)):
-		j = len(b)-i-1
-		try:
-			mci = mark_col[j]
-		except:
-			mci = '-k'
-		ax.plot(a[j],b[j],mci)
-	ax.set_xlabel(a_label)
-	ax.set_ylabel(b_label)
-
-	return (fig,ax)
-
-
 def multiplot2(x,y,param=False):
 
 	if param is False:
@@ -264,7 +172,6 @@ def multiplot2(x,y,param=False):
 			if m < param.ylim[0]: param.ylim[0] = m
 			m=np.max(y[i])
 			if m > param.ylim[1]: param.ylim[1] = m 
-
 
 	figure = param.figure
 
@@ -316,6 +223,34 @@ def multiplot2(x,y,param=False):
 
 	return (fig,ax)
 
+##################################################################################
+############################  PLOT 3D  ###########################################
+##################################################################################
+			
+def plot3(x,y,z, param = False,figure=False):
+
+	if param is False:
+		param = Paradraw()
+	pylab.ion()
+	if figure is False:
+		fig = pylab.figure()
+		ax = Axes3D(fig)
+	else:
+		fig = figure[0]
+		ax = figure[1]
+	mi = param.markers[0]
+	sty = param.marks[0]
+	ci = param.colors[0]
+#		if param.markeredge is False:
+#		ax.plot(a[j], b[j], c[j],mci, markeredgecolor='none')
+#		else:
+	if param.markeredge is False:
+		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, markeredgecolor='none',label=param.legend[0])
+	else:
+		ax.plot(x, y, z, linestyle = sty, color = ci, marker = mi, label=param.legend[0])
+	Options(ax,(x,y,z),param)
+	return (fig,ax)
+
 def multiplot3(x,y,z,figure=False, param = False):
 	if param is False:
 		param = Paradraw()
@@ -358,29 +293,10 @@ def multiplot3(x,y,z,figure=False, param = False):
 	Options(ax,(x[0],y[0],z[0]),param)
 	return (fig,ax)
 
-def closeall(n=50):
-	for i in range(n):
-		pyplot.close()
+##################################################################################
+##########################  PLOT COLOR  ##########################################
+##################################################################################
 		
-
-def flim1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
-
-	if figure is False:
-		fig = pyplot.figure( 1 )
-		ax = fig.add_subplot( 111 )
-		im = ax.imshow( np.zeros( ( 256, 256, 3 ) ) ) # Blank starting image
-		figure = (fig,ax,im)
-		fig.show()
-		im.axes.figure.canvas.draw()
-	else:
-		fig = figure[0]
-		ax = figure[1]
-		im = figure[2]
-	im.set_data( b )
-	im.axes.figure.canvas.draw()
-	return (fig,ax,im)
-
-
 def pcolor(data,param=False):
 	if param is False:
 		param = Paradraw()
@@ -438,69 +354,127 @@ def pcolor(data,param=False):
 		pylab.show()
 		return fig,ax,cbar
 
-def plot1(data,param=False):
-	if param is False:
-		param = Paradraw()
-	x = np.arange(len(data))
-	y = data
-	data2 = (x,y)
-	fig,ax = plot2(data2,param)
-	return fig,ax
-
-
-def multiplot2bis(data,param=False):
-	if param is False:
-		param = Paradraw()
-
-	x = data[0]
-	y = data[1]
-
+def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
+	p = np.argsort(z)
+	print(p.shape)
+	print(a.shape)
+	print(b.shape)
+	print(c.shape)
+	print(p.max())
+	macol = pyplot.cm.bwr(np.arange(z.size))
+	print(macol.shape)
 	pylab.ion()
-	fig = pylab.figure()
-	ax = fig.add_subplot(111)
-	ax.plot( x, y, linestyle = param.marks[0],color = param.colors[0], marker =param.markers[0])
-	# set the limits of the plot to the limits of the data
-	Options(ax,(x,y),param)
-
-	return fig,ax
-
-def rawplot(data,param,fig,ax):
-	x = data[0]
-	y = data[1]
-	if param is False:
-		param = Paradraw()
-	if param.markeredge is False:
-		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],markeredgecolor='none',linewidth = param.thickness[0])
+	if figure is False:
+		fig = pylab.figure()
+		ax = fig.add_subplot(111, projection='3d')
 	else:
-		ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color=param.colors[0],linewidth = param.thickness[0])
+		fig = figure[0]
+		ax = figure[1]
+	ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
+	ax.set_xlabel(a_label)
+	ax.set_ylabel(b_label)
+	ax.set_zlabel(c_label)
 
-	# set the limits of the plot to the limits of the data
-	Options(ax,(x,y),param)
+	return (fig,ax)
 
-	return fig,ax
+def plot3cluster(a,b,c,keys,codomain,order,figure=False,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
+	pylab.ion()
+	if figure is False:
+		fig = pylab.figure()
+		ax = fig.add_subplot(111, projection='3d')
+	else:
+		fig = figure[0]
+		ax = figure[1]
+	colbase = pyplot.cm.jet(np.arange(256))
+	colbase = colbase[np.int64(np.linspace(0,255,codomain.size)),:]
+	for i in range(codomain.size):
+		p = np.where(keys==codomain[order[i]-1])[0]
+		macol = np.array([np.random.random(),np.random.random(),np.random.random(),1.])
+		macol = colbase[i,:]
+		ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
+	ax.set_xlabel(a_label)
+	ax.set_ylabel(b_label)
+	ax.set_zlabel(c_label)
 
-def plot2(data,param=False):
-	x = data[0]
-	y = data[1]
+	return (fig,ax)
+
+def density2D(x,y,param=False):
+	# Calculate the point density
+	xy = np.vstack([x,y])
+	z = gaussian_kde(xy)(xy)
+
+	# Sort the points by density, so that the densest points are plotted last
+	idx = z.argsort()
+	try:x, y, z = x[idx], y[idx], z[idx]
+	except:x, y, z = np.array(x)[idx], np.array(y)[idx], np.array(z)[idx]
+
+
 	if param is False:
 		param = Paradraw()
 	pylab.ion()
 	if param.figure is False:
-		fig = pylab.figure()
-		ax = fig.add_subplot(111)
+		fig, ax = pyplot.subplots()
+		#fig = pylab.figure()
+		#ax = Axes3D(fig)
 	else:
-		fig = param.figure[0]
-		ax = param.figure[1]
-	if param.markeredge is False:
-		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0],markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], markeredgecolor='none',linewidth = param.thickness[0],label=param.legend[0])
-	else:
-		if param.stem is False:ax.plot( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
-		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
-	# set the limits of the plot to the limits of the data
+		fig = figure[0]
+		ax = figure[1]
+	ax.scatter(x, y, c=z, s=50, edgecolor='')
 	Options(ax,(x,y),param)
+	
+	return (fig,ax)
 
+##################################################################################
+#########################  PLOT STATS  ###########################################
+##################################################################################
+
+def hist(data,n=20,tresh = False,param = False):
+	data2 = data+0.0
+	if tresh is not False:
+		data2[data2>tresh] = tresh
+		data2[data2<-tresh] = -tresh
+	if param is False:
+		print('default parameters') 
+		param = Paradraw()
+		param.marks = ['k','or']
+		param.x_label = 'bins'
+		param.y_label = 'Frequency'
+		param.ax_x_format = '%.2f'
+		param.ax_y_format = '%.0f'
+#		if is3d is True:
+#			param.ax_z_format = '%.0f'
+	hist, bins = np.histogram(data2, bins=n)
+	hist = hist
+	width = 0.7 * (bins[1] - bins[0])
+	center = (bins[:-1] + bins[1:]) / 2
+	pylab.ion()
+	fig = pylab.figure()
+	ax = fig.add_subplot(111)
+	ax.bar(center, hist, align='center', width=width, color = param.bar_col)
+	Options(ax,(center,hist),param)
+	pylab.show()
 	return fig,ax
+
+def plot_Mahalanobis(d,r,param=False):
+	if param is False:
+		print('default parameters') 
+		param = Paradraw()
+		param.marks = ['k','or']
+		param.x_label = 'Normal theoritical quantiles'
+		param.y_label = 'Ordered Mahalanobis distances'
+		param.ax_x_format = '%.0f'
+		param.ax_y_format = '%.0f'
+
+	x2=np.linspace(  np.min( d[0] ),np.max( d[0] ), len(d[0])  )
+	y2 = r[1] + r[0]*x2
+
+	x = ( x2, d[0] )
+	y = ( y2, d[1] )
+	multiplot2(x,y,param)
+
+##################################################################################
+############################  OPTIONS  ###########################################
+##################################################################################
 
 def Options(ax,X,param=False, cbar=False):
 	x=X[0]
@@ -649,14 +623,20 @@ def Options(ax,X,param=False, cbar=False):
 #	ax.tick_params(axis='both', which='minor', labelsize=param.ticksize)
 
 
+
+
 def change_options():
 	ax = pyplot.gca()
 #	ax.tick_params(axis='both', which='minor', labelsize=param.ticksize)
 	ax.xaxis.set_minor_locator(pyplot.FixedLocator([2,4]))
 
+##################################################################################
+###########################  TOOLS  ##############################################
+##################################################################################
 
-
-
+def closeall(n=50):
+	for i in range(n):
+		pyplot.close()
 
 def subplot(y,x=False,params=False):
 	import copy
@@ -671,52 +651,6 @@ def subplot(y,x=False,params=False):
 		if x is False:xx = np.arange(len(y[i]))
 		else: xx = x[i]
 		plot2((xx,y[i]),param = params[i])
-
-
-def hist(data,n=20,tresh = False,param = False):
-	data2 = data+0.0
-	if tresh is not False:
-		data2[data2>tresh] = tresh
-		data2[data2<-tresh] = -tresh
-	if param is False:
-		print('default parameters') 
-		param = Paradraw()
-		param.marks = ['k','or']
-		param.x_label = 'bins'
-		param.y_label = 'Frequency'
-		param.ax_x_format = '%.2f'
-		param.ax_y_format = '%.0f'
-#		if is3d is True:
-#			param.ax_z_format = '%.0f'
-	hist, bins = np.histogram(data2, bins=n)
-	hist = hist
-	width = 0.7 * (bins[1] - bins[0])
-	center = (bins[:-1] + bins[1:]) / 2
-	pylab.ion()
-	fig = pylab.figure()
-	ax = fig.add_subplot(111)
-	ax.bar(center, hist, align='center', width=width, color = param.bar_col)
-	Options(ax,(center,hist),param)
-	pylab.show()
-	return fig,ax
-
-def plot_Mahalanobis(d,r,param=False):
-	if param is False:
-		print('default parameters') 
-		param = Paradraw()
-		param.marks = ['k','or']
-		param.x_label = 'Normal theoritical quantiles'
-		param.y_label = 'Ordered Mahalanobis distances'
-		param.ax_x_format = '%.0f'
-		param.ax_y_format = '%.0f'
-
-	x2=np.linspace(  np.min( d[0] ),np.max( d[0] ), len(d[0])  )
-	y2 = r[1] + r[0]*x2
-
-	x = ( x2, d[0] )
-	y = ( y2, d[1] )
-	multiplot2(x,y,param)
-
 
 def fig_list():
 	figlist = pyplot.get_fignums()
@@ -746,4 +680,26 @@ def save(path = None,name = None, fig = None):
 		pyplot.savefig(path + name + '.eps')
 		pyplot.savefig(path + name + '.pdf')
 		pyplot.savefig(path + name + '.png')
+
+##################################################################################
+###########################  DIVERS  #############################################
+##################################################################################
+
+def flim1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
+	if figure is False:
+		fig = pyplot.figure( 1 )
+		ax = fig.add_subplot( 111 )
+		im = ax.imshow( np.zeros( ( 256, 256, 3 ) ) ) # Blank starting image
+		figure = (fig,ax,im)
+		fig.show()
+		im.axes.figure.canvas.draw()
+	else:
+		fig = figure[0]
+		ax = figure[1]
+		im = figure[2]
+	im.set_data( b )
+	im.axes.figure.canvas.draw()
+	return (fig,ax,im)
+
+
 

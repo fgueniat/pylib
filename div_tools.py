@@ -1,6 +1,20 @@
 import pickle
 import numpy as np
+def split_list(str_):
+	'''
+	sys.argv to list
+	'''
+	temp = str_.split('[')
+	temp = temp[1].split(']')
+	return [float(s) for s in temp[0].split(',')]
+def split_tuple(str_):
+	'''
+	sys.argv to tuple
+	'''
+	return tuple(split_list(str_))
 
+def str_none(str_):
+	pass
 def print_(prec=3):
 #	print('np.set_printoptions(precision=prec,suppress=True)')
 	np.set_printoptions(precision=prec,suppress=True)
