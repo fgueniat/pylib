@@ -14,7 +14,7 @@ from scipy.stats import gaussian_kde
 ##################################################################################
 #########################  Parameters  ###########################################
 ##################################################################################
-
+path = '/home/fgueniat/Documents/productions/'
 class Paradraw():
 	def __init__(self,marks=['-'], colors = ['k'], markers = [''], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
 
@@ -296,7 +296,15 @@ def multiplot3(x,y,z,figure=False, param = False):
 ##################################################################################
 ##########################  PLOT COLOR  ##########################################
 ##################################################################################
-		
+
+def fill(x,y,y_plus,y_minus,param=False,color="#006699"):
+	if param is False:
+		param = Paradraw()
+	fig,ax = plot2((x,y),param)
+	#param.figure = (fig,ax)
+	ax.fill_between(x, y_plus,y_minus, color=color)
+	return fig,ax
+
 def pcolor(data,param=False):
 	if param is False:
 		param = Paradraw()
@@ -427,6 +435,102 @@ def density2D(x,y,param=False):
 ##################################################################################
 #########################  PLOT STATS  ###########################################
 ##################################################################################
+
+def pwelch(data=False,dt=False,param=False,normalize = False,strouhal = 1.,isplot=True):
+	'''
+	normalize:
+		False: nothing
+		True: normalize at 1
+		float: by the max aroud float
+	'''
+	if data is False:
+		print 'no data'
+		return -1
+	import scipy.fftpack
+	from scipy import signal
+	# Number of samplepoints
+	if param is False:
+		param=Paradraw()
+		param.ax_x_format = '%.3f'
+		param.ax_y_format = '%.3f'
+		param.y_scale = 'log'
+		param.ylabel = 'PSD'
+		param.xlabel = 'f'
+	N = len(data)
+	# sample spacing
+	if dt is False:dt = 1.
+	df = 1./dt
+
+	xf, yf = signal.welch(data, df, nperseg=1024)
+	xf = xf*strouhal
+
+	if normalize is True:
+		yf = yf/np.max(yf)
+	elif normalize is False:
+		pass
+	else:
+		from numbers import Number
+		if isinstance(normalize,Number):
+			ind = np.argmin(np.abs(xf-normalize))
+			df = int(0.1*normalize*(N*dt)/strouhal) # N*dt = 1/df
+			indm = np.max([0,ind-df])
+			indM = np.min([N,ind+df])
+			rn = np.max(yf[indm:indM])
+			yf = yf/rn
+	if isplot is True:
+		fig,ax = plot2((xf, yf),param)
+		return fig,ax
+	else:
+		return (xf,yf)
+
+def fft(data=False,time=False,param=False,normalize = False,strouhal=1.,isplot=True):
+	'''
+	normalize:
+		False: nothing
+		True: normalize at 1
+		float: by the max aroud float
+	'''
+	if data is False:
+		print 'no data'
+		return -1
+	import scipy.fftpack
+	# Number of samplepoints
+	if param is False:
+		param=Paradraw()
+		param.ax_x_format = '%.3f'
+		param.ax_y_format = '%.3f'
+		param.ylabel = 'PSD'
+		param.xlabel = 'f'
+	
+		
+	N = len(data)
+	# sample spacing
+	if time is False:time = np.linspace(0,1,N)
+	dt = time[1]-time[0]
+	yf = scipy.fftpack.fft(data)
+	xf = np.linspace(0.0, 1.0/(2.0*dt), N/2)*strouhal
+#	print len(xf)
+#	print len(yf)
+	yf = 2.0/N * np.abs(yf[:N//2])
+	if normalize is True:
+		yf = yf/np.max(yf)
+	elif normalize is False:
+		pass
+	else:
+		from numbers import Number
+		if isinstance(normalize,Number):
+			ind = np.argmin(np.abs(xf-normalize))
+			df = int(0.1*normalize*(N*dt)/strouhal) # N*dt = 1/df
+			indm = np.max([0,ind-df])
+			indM = np.min([N,ind+df])
+			rn = np.max(yf[indm:indM])
+			yf = yf/rn
+			
+	if isplot is True:
+		fig,ax = plot2((xf, yf),param)
+		return fig,ax
+	else:
+		return (xf,yf)
 
 def hist(data,n=20,tresh = False,param = False):
 	data2 = data+0.0

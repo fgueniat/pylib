@@ -1,6 +1,22 @@
 import numpy as np
 
+def curl(u,v,x=False,y=False):
+	''' return the 2D vorticity field
+	'''
+	if x is False:x=np.ones(u.shape)
+	if y is False:y=np.ones(u.shape)
+	
+		
+	try:
+		dx = np.c_[x[:,1]-x[:,0],(np.diff(x,axis=1)[:,1:]+np.diff(x,axis=1)[:,0:-1])/2,x[:,-1]-x[:,-2]] 
+		dy = np.r_[[y[1,:]-y[0,:]],(np.diff(y,axis=0)[1:,:]+np.diff(y,axis=0)[0:-1,:])/2,[y[-1,:]-y[-2,:]]] 
+	except e:
+		print 'try to use meshgrid'
+		return -1
+		
+	c = np.gradient(u,dy,axis = 0) - np.gradient(v,dx,axis=1)
 
+	return c
 
 def ssp2(f, g, t, x0, u, p):
 
