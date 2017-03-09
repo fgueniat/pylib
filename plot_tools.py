@@ -69,7 +69,8 @@ class Paradraw():
 		self.ax_z_format = ax_z_format
 		#other exemples : '%.2f'
 		self.figure = figure
-	
+
+		self.error_collected = []
 	def help(self):
 		return self.__dict__	
 	
@@ -133,7 +134,11 @@ def plot2(data,param=False):
 		else:ax.stem( x, y, linestyle = param.marks[0], marker = param.markers[0], color = param.colors[0], linewidth = param.thickness[0],label=param.legend[0])
 	# set the limits of the plot to the limits of the data
 	Options(ax,(x,y),param)
-
+	for err in param.error_collected:
+		import matplotlib.pyplot as plt
+		if err[0] == 'xticks':plt.xticks(err[1],err[2])
+		if err[0] == 'yticks':plt.yticks(err[1],err[2])
+		
 	return fig,ax
 
 def multiplot1(y,param=False):
@@ -142,9 +147,9 @@ def multiplot1(y,param=False):
 		param = Paradraw()
 	figure = param.figure
 
-	x = (np.array(range(0,y[0].size)),)
+	x = (np.array(range(0,len(y[0]))),)
 	for i in range(1,len(y)):
-		x = x + (np.array(range(0,y[i].size)),)
+		x = x + (np.array(range(0,len(y[i]))),)
 	if figure is False:
 		fig, ax = pyplot.subplots()
 	else:
@@ -369,7 +374,7 @@ def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 
 	print(b.shape)
 	print(c.shape)
 	print(p.max())
-	macol = pyplot.cm.bwr(np.arange(z.size))
+	macol = pyplot.cm.bwr(np.arange(len(z)))
 	print(macol.shape)
 	pylab.ion()
 	if figure is False:
@@ -394,8 +399,8 @@ def plot3cluster(a,b,c,keys,codomain,order,figure=False,a_label = 'axis 1',b_lab
 		fig = figure[0]
 		ax = figure[1]
 	colbase = pyplot.cm.jet(np.arange(256))
-	colbase = colbase[np.int64(np.linspace(0,255,codomain.size)),:]
-	for i in range(codomain.size):
+	colbase = colbase[np.int64(np.linspace(0,255,len(codomain))),:]
+	for i in range(len(codomain)):
 		p = np.where(keys==codomain[order[i]-1])[0]
 		macol = np.array([np.random.random(),np.random.random(),np.random.random(),1.])
 		macol = colbase[i,:]
@@ -642,7 +647,10 @@ def Options(ax,X,param=False, cbar=False):
 				xlabel = np.linspace(xm,xM,3)
 		else:
 			xlabel = param.x_tick_label
-		ax.set_xticks(xlabel)
+		try:
+			ax.set_xticks(xlabel)
+		except:
+			param.error_collected.append(['xticks',x,xlabel])
 		ax.set_xticklabels(ax.get_xticks(),None,None,fontsize=param.ticksize)
 		ax.xaxis.set_major_formatter(mtick.FormatStrFormatter(param.ax_x_format))
 
@@ -661,7 +669,11 @@ def Options(ax,X,param=False, cbar=False):
 				ylabel = np.linspace(ym,yM,3)
 		else:
 			ylabel = param.y_tick_label
-		ax.set_yticks(ylabel)
+		try:
+			ax.set_yticks(ylabel)
+		except:
+			param.error_collected.append(['yticks',y,ylabel])
+			
 		ax.set_yticklabels(ax.get_yticks(),None,None,fontsize=param.ticksize)
 		ax.yaxis.set_major_formatter(mtick.FormatStrFormatter(param.ax_y_format))
 
