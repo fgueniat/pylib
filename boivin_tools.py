@@ -8,7 +8,7 @@ import div_tools as dt
 norm = np.linalg.norm
 
 def params(argv=None,inputs = None):
- 	if inputs is None:
+ 	if inputs is None: 
 			inputs = {
 			'input_spec':'H2',
 			'input_n':4,
@@ -16,17 +16,28 @@ def params(argv=None,inputs = None):
 			'input_n_cubic':0,
 			'input_tp':(1200,101325),
 			'input_ci':np.array([1.e-03,1.0e-09,1.e-03,1.e-09,1.e-9,1.e-09,1.e-9,1.e-9]),
+			'input_nt':150,
+			'input_tmin':None,
+			'input_tmax':None,
+			'input_rho':None,
+			'input_eps':None,
 			'input_compute_random':False,
+			'input_mechanism':'boivin.cti',
 			'input_compute_sm':True,
+                        'input_method':'Nelder-Mead',
 			'input_ci_random':None,
 			'input_tp_random':None,
 			'input_minimization':None,
 			'input_verbose':False,
 			'input_plots':[False,False,False,False,False,False],
+			'ploc':{},
+			'outputs':{},
 			}
+			inputs['ploc']['debug']={}
 			#plots: concentration, mass fraction,rates,
+			#ploc: local parameters
 	try:
-		inputs['input_spec'] = argv[1]
+		inputs['input_spec' ] = argv[1]
 		inputs['input_n'] = int(argv[2])
 		inputs['input_n_square'] = int(argv[3])
 		inputs['input_n_cubic'] = int(argv[4])
@@ -36,367 +47,349 @@ def params(argv=None,inputs = None):
 		inputs['input_tp_random'] = dt.split_tuple(argv[8])
 	except:
 		pass
-	inputs['spec'] = inputs['input_spec']
 	return inputs
 
+def extended_sm(inputs,specs=None,verbose=False):
+	#compute algebraic constraints for all species
+	if specs is None:
+		r = reaction_init(inputs)
+		specs = [r.list[i] for i in xrange(r.n_species)] 
+	n_s = len(specs)
+	dict_param = {}
+	# verif param are 0:
+	ploc = inputs['ploc']
+	verbose = inputs['input_verbose']
+	ploc={}
+	inputs['input_compute_sm'] = True
+	inputs['input_compute_random'] = False
+	inputs['input_minimization'] = None
+	#
+	order_observability(inputs)
+	#
+	for ispec,spec in enumerate(specs):
+		if verbose is True:print 'spec # ' + str(ispec) + ' over ' + str(n_s) 
+		inputs['input_spec']=spec
+		id_algebraic_constrains(inputs)
+		dict_param[spec] = inputs['outputs'][spec].copy()
+	return dict_param
 
-def main(inputs=params()):
-#	
+def observable(z,alpha,inputs):
+	ploc = inputs[ 'ploc']
+	y =  z[ploc['ind2rec']]
+	y += np.sum([alpha[i]*z[ploc['ind2use'][i]] for i in xrange(inputs['input_n'])])
+	y += np.sum([alpha[i+inputs['input_n']]*(z[ploc['ind2use'][i]]**2) for i in xrange(inputs['input_n_square'])])
+	y += np.sum([alpha[i+inputs['input_n']+inputs['input_n_square']]*(z[ploc['ind2use'][i]]**3) for i in xrange(inputs['input_n_cubic'])])
+	return y
+
+def specs2inds(inputs,spec2use=None):
+
+	ploc = inputs['ploc']
+	spec2rec = inputs['input_spec']
+	ind2rec = inputs['outputs']['main_reaction'].list[spec2rec]	
+	ploc['ind2rec'] = ind2rec
+	ploc['spec2rec'] = spec2rec
+	# more efficient to use directly the species in the order of observability
+	obs_prop = inputs['outputs']['observable_sorted']
+	if spec2use is None:
+	#spec to reconstruct not being present
+		spec2use = [spec for spec in obs_prop[0:inputs['input_n']+1] if spec not in [spec2rec]]
+		if len(spec2use)>inputs['input_n']:spec2use.pop() 		
+	#
+	ind2use = np.array([inputs['outputs']['main_reaction'].list[spec] for spec in spec2use if spec not in [spec2rec]])
+	ploc['ind2use']=ind2use
+	spec2use = [inputs['outputs']['main_reaction'].list[ind] for ind in ind2use]
+	ploc['spec2use']=spec2use
+
+	
+def reaction_init(inputs,israndom=False):
+	ploc=inputs['ploc']
+	verbose = inputs['input_verbose']
+	#
+	#mechanism = 'boivin.cti'# mechanism
+	mechanism = inputs['input_mechanism']# mechanism
+	prob = ('0D','pressure') #type of problem
+	#
+#	n_s = len(inputs['input_ci']) # number of species
+	########################################
+	# initial conditions
+	V = 1.e3 * (1.e-2)**3 # initial volume
+	if israndom is False: 
+		c_init = inputs['input_ci']	
+		#ci_random = inputs['input_ci_random']
+		tpinit = inputs['input_tp']
+	else:
+		c_init = inputs['input_ci_random']	
+		#ci_random = inputs['input_ci_random']
+		tpinit = inputs['input_tp_random']
+	#######################################
+	#define the time for integration
+	nt = inputs['input_nt']
+	inputs['ploc']['nt'] = nt
+	if inputs['input_tmin'] is None:tmin = 1.e-7
+	else:tmin =inputs['input_tmin']
+	if inputs['input_tmax'] is None:tmax = 1.e-2
+	else:tmax =inputs['input_tmax']
+	
+	inputs['ploc']['tmin'] = tmin
+	inputs['ploc']['tmax'] = tmax
+	offset_ts = .4
+	ploc['offset_ts'] = offset_ts
+	timelog = np.logspace(np.log10(tmin),np.log10(tmax),nt)
+	ploc['time'] = timelog
+
+	#######################################
+	# define the reaction
+	reaction = chemreac(cti = mechanism, problem = prob,V=V)
+	reaction.TP(tp=tpinit,reset = False)
+	reaction.concentrations(c=c_init,reset = True)
+	# integrate the system
+	reaction.integrate(time = timelog)
+	return reaction
+
+def scale_(zh,z,offset='end'):
+	if offset == 'begin':
+		off_zh = zh[0]
+		off_z  = z[0]
+	if offset == 'end':
+            off_zh = np.mean(zh[-5:])
+            off_z  = np.mean(z[-5:])
+	zh = zh - off_zh
+	zh=zh+off_z
+ 	return zh
+
+def reconstruction(a,inputs,offset='end',r=None):
+	time = inputs['ploc']['time']
+	
+	ind2rec = inputs['ploc']['ind2rec']
+	if r is None: 
+		try: r=inputs['ploc']['reaction']
+		except:r=reaction_init(inputs)		
+	# observable
+	obs = np.array([observable(r.h_z[i+1],a,inputs) for i in xrange(len(time) )])
+	# reconstruction
+	z1 = r.time_series('z',ind2rec)[1:]
+	# obs is (supposedly) approx a constant.
+	# instead of using the constrains, we use obs for the reconstruction
+	z1hat = -obs + z1
+	z1hat_offset = scale_(z1hat,z1)	
+	z1_offset=z1
+	###########################
+	return obs,z1hat,z1,z1hat_offset
+
+def order_observability(inputs):
+	ploc = inputs['ploc']
 	##################################################
 	# This section sets the parameters of the mechanism
-	if True:
-		verbose = inputs['input_verbose']
-
-		mechanism = 'boivin.cti'# mechanism
-		prob = ('0D','pressure') #type of problem
-		#
-		n_s = 8 # number of species
-		########################################
-		# initial conditions
-		V = 1.e3 * (1.e-2)**3 # initial volume
-		#n_h2,n_o2,n_h2o,n_h,n_o,n_oh,n_ho2,n_h2o2,n_n = 1.e-3,1.e-3,1.e-9,1.e-9,1.e-9,1.e-9,1.e-9,1.e-9,1.e-5	
-		#c_init = np.array([n_h2,n_h,n_o2,n_o,n_oh,n_ho2,n_h2o,n_h2o2 ])
-		c_init = inputs['input_ci']		
-		ispert = False
-		if ispert is True:pert = 0.10*(np.random.rand(n_s)-0.5)*2.
-		else:pert = 0.
-		c_init = c_init*(np.ones(n_s)+pert)
-		#ci_random =  np.array([ 9.6e-04, 1.0e-09, 6.5e-04, 1.3e-09, 1.1e-9, 1.2e-09, 4.2e-10,   2.3e-10])
-		ci_random = inputs['input_ci_random']
-		tpinit = inputs['input_tp']
-		#######################################
-		#define the time for integration
-		nt = 150
-		tmin = 1.e-7
-		tmax = 1.e-2
-		offset_ts = .4
-		timelog = np.logspace(np.log10(tmin),np.log10(tmax),nt)
-		#######################################
-		# define the reaction
-		reaction = chemreac(cti = mechanism, problem = prob,V=V)
-		reaction.TP(tp=tpinit,reset = False)
-		reaction.concentrations(c=c_init,reset = True)
-		# integrate the system
-		reaction.integrate(time = timelog)
-
-	def param_plot():# params for plots
-		#time
-		tmini = int(np.floor(np.log10(tmin)))
-		tmaxi = int(np.ceil(np.log10(tmax)))
-		#main parameters
-		pd = pt.Paradraw()
-		pd.legend = [reaction.list[i] for i in xrange(n_s)]
-		pd.x_scale = 'log'
-		pd.xlim = [tmin,tmax]
-		pd.x_tick_label = [1.*10**i for i in xrange(tmini+1,tmaxi+1,2)]
-		pd.x_label = 'time'
-		pd.colors = ['tan','g','r','b','k','y','magenta','aqua']
-		return pd
-
-	def reconstruction(a,title=None,std=False,offset='end',r=None,isobs=True,isplot=False):#plot reconstruction
-			if r  is None: return -1
-			def scale_(zh,z):
-				if offset == 'begin':
-					off_zh = zh[0]
-					off_z  = z[0]
-				if offset == 'end':
-					off_zh = zh[-1]
-					off_z  = z[-1]
-				zh = zh - off_zh
-				zh=zh+off_z
-				return zh
-			# observable
-			obs = np.array([observable(r.h_z[i+1],a) for i in xrange(len(timelog) )  ])
-			p = param_plot()
-			p.y_label = 'observable'
-			p.colors = ['k']
-			p.thickness = [2]
-			p.legend=[False]
-			if isobs is True and isplot is True:pt.plot2((timelog,obs),p)
-			# reconstruction
-			z1 = r.time_series('z',ind2rec)[1:]
-			# obs is (supposedly) approx a constant.
-			# instead of using the constrains, we use obs for the reconstruction
-			z1hat = -obs + z1
-			z1hat_offset = scale_(z1hat,z1)	
-			z1_offset=z1
-			###########################
-			# plot
-			p=param_plot()
-			p.title = title
-			p.marks = ['','-']
-			p.markers = ['o','']
-			p.colors = ['r','k']
-			p.thickness = [2,2]
-			p.legend=[False]
-			p.y_label = 'z'
-			p.y_scale = 'symlog'
-			p.legend=['$z_{'+spec2rec + '}$','$\hat{z}_{'+ spec2rec + '}$']
-			tt = (timelog,)*2
-			if isplot is True:pt.multiplot2(tt,(z1_offset,z1hat_offset),p)
-			#
-			return obs,z1hat,z1,z1hat_offset
-	#
+	reaction = reaction_init(inputs)
+	inputs['outputs']['main_reaction']=reaction
+	n_s = reaction.n_species
 	################################################################
 	# This section sets the parameters of the observability analysis
-	if True:
-		eps_,rho=5.e-2,1.e-9
-	#	eps_ = 0.01*c_init
-		eps_eff = eps_
+	#eps_,rho=5.e-2,1.e-9
+	if inputs['input_rho'] is None:rho = 1.e-9
+	else:rho = inputs['input_rho']
+	if inputs['input_eps'] is None:eps_ = 5.e-2
+	else:eps_ = inputs['input_eps']
 
-		mm = 'trace' # measure
-		##############################
-		# exploration:
-		exp_dx,eps_eff = ot.f_explore(reaction,c_init,timelog,eps_ = eps_)
-		# order of observability
-		fobs = lambda x: np.diag(x)
-		w=ot.EG(fobs,exp_dx,eps_eff,timelog)
-		w0=np.mean(w,axis=0)
-		obs_prop = np.argsort(w0)[::-1]
-		obs_sorted = [reaction.list[obs_prop[i]] for i in xrange(n_s)]
-		if verbose is True:
-			print 'from most observable to least observable:'
-			print ', '.join(obs_sorted)
-	#	
-	##################################################
-	# This section sets the parameters of the manifold
-	if True:
-		spec2use = None 
-		
-	#	if input_n is not None: n_obs,n_obs_square,n_obs_cubic = (input_n,input_n_square,input_n_cubic)
-		n_obs,n_obs_square,n_obs_cubic = inputs['input_n'],inputs['input_n_square'],inputs['input_n_cubic']
-		spec2rec = inputs['input_spec']
-		ind2rec = reaction.list[spec2rec]
-		# more efficient to use directly the species in the order of observability
-		if spec2use is None:
-		#spec to reconstruct not being present
-			ind2use = np.array([ind for ind in obs_prop if ind not in [ind2rec]])
-		else:
-		# or specify:
-			ind2use = np.array([reaction.list[spec] for spec in spec2use if spec not in [spec2rec]])
-		spec2use = [reaction.list[ind] for ind in ind2use]	
-		# Observable function
-		def observable(z,alpha):
-			y =  z[ind2rec]
-			y += np.sum([alpha[i]*z[ind2use[i]] for i in xrange(n_obs)])
-			y += np.sum([alpha[i+n_obs]*(z[ind2use[i]]**2) for i in xrange(n_obs_square)])
-			y += np.sum([alpha[i+n_obs+n_obs_square]*(z[ind2use[i]]**3) for i in xrange(n_obs_cubic)])
-			return y
-		def dobservable(z,alpha):
-			#dy = np.zeros(n_obs+n_obs_square+n_obs_cubic)
-			#for i in xrange(n_obs+n_obs_square+n_obs_cubic):
-			dy = [z[ind2use[i]] for i in xrange(n_obs)]
-			dy += [z[ind2use[i]]**2 for i in xrange(n_obs_square)]
-			dy += [z[ind2use[i]]**3 for i in xrange(n_obs_cubic)]
-			return np.array(dy)
-	#	 
-		def J(alpha): 
-			''' cost function '''
-			return ot.cost_gramian(alpha,f_def_obs=observable,rho=rho,dx=exp_dx,eps_=eps_eff,time=timelog, verbose = False, measure = mm)
+	ploc['eps_']=eps_
+	ploc['rho']=rho
+	#eps_ = 0.01*c_init
 	#
-	########################################
-	# This section just plots the  mechanism
-	if False:
-		plot_concentration = inputs['input_plots'][0]
-		if plot_concentration is True:
-			cc = [reaction.time_series('concentrations',i) for i in xrange(reaction.n_species)]
-			tt = (reaction.time,)*n_s
-			pd =param_plot()
-			pd.y_label = 'n'
-			pt.multiplot2(tt,cc,pd)
-	#
-		plot_mass_fraction = inputs['input_plots'][1]
-		if plot_mass_fraction is True:
-			zz = [reaction.time_series('z',i) for i in xrange(reaction.n_species)]
-			pd = param_plot()
-			pd.y_scale = 'log'
-			pd.y_label = 'z'
-			pt.multiplot2(tt,zz,pd)
-	#
-		plot_rates= inputs['input_plots'][2]
-		if plot_rates is True:
-			pd = param_plot()
-			pd.y_scale = 'symlog'
-			pd.y_label = 'p rate'
-			pp = [reaction.time_series('rates',i) for i in xrange(n_s)]
-			pt.multiplot2(tt,pp,pd)
-	#
+	mm = 'trace' # measure
+	ploc['measure'] = mm
+	##############################
+	# exploration:
+	c_init = inputs['input_ci']
+	time = ploc['time']
+	exp_dx,eps_eff = ot.f_explore(reaction,c_init,time,eps_ = eps_)
+	ploc['exp_dx']=exp_dx
+	ploc['eps_eff']=eps_eff
+	# order of observability
+	fobs = lambda x: np.diag(x)
+	w=ot.EG(fobs,exp_dx,eps_eff,time)
+	w0=np.mean(w,axis=0)
+	obs_prop = np.argsort(w0)[::-1]
+	obs_sorted = [reaction.list[obs_prop[i]] for i in xrange(n_s)]
+	if inputs['input_verbose'] is True:
+		print 'from most observable to least observable:'
+		print ', '. join(obs_sorted)
+	#ploc['observable_sorted'] = obs_sorted
+	inputs['outputs']['observable_sorted'] = obs_sorted
+
+def id_algebraic_constrains(inputs,reaction=None,spec2use=None):
+	ploc = inputs['ploc']
+	outputs=inputs['outputs']
+	#if 'reaction' not in ploc:order_observability(inputs)
+	if reaction is None:reaction = outputs['main_reaction']
+	measure = ploc['measure']
+	eps_eff,rho = ploc['eps_eff'],ploc['rho']
+	exp_dx,offset_ts=ploc['exp_dx'],ploc['offset_ts']
+	time = ploc['time']
+	#if input_n is not None: n_obs,n_obs_square,n_obs_cubic = (input_n,input_n_square,input_n_cubic)
+	n_obs,n_obs_square,n_obs_cubic = inputs['input_n'],inputs['input_n_square'],inputs['input_n_cubic']
+
+	specs2inds(inputs)
+	
+	spec2rec = ploc['spec2rec']
+	ind2rec = ploc['ind2rec']
+	ind2use = ploc['ind2use']
+	spec2use = ploc['spec2use']
+        method = inputs['input_method']
 	#########################################
 	# This section computes the slow manifold
 	compute_sm = inputs['input_compute_sm']
 	if compute_sm is True:
 		cinit_min = np.zeros(n_obs+n_obs_square+n_obs_cubic)
-		#cinit_min = np.r_[np.random.rand(n_obs)-0.5,10*(np.random.rand(n_obs_square)-0.5),100*(np.random.rand(n_obs_cubic)-0.5)]
-		if inputs['input_minimization'] is None:a = ot.slow_manifold(cinit_min,dx = exp_dx, f_def_obs = observable, eps_ = eps_eff,time = timelog,rho=rho,method = 'BFGS',measure = mm,verbose = False,offset = offset_ts,maxiter=[1000,100],n_recuit = 10, isrecuit=False,r=reaction)
-		else: a = inputs['input_minimization']
-		if verbose is True:
+		if inputs['input_minimization'] is None:
+			fobs = lambda x,a: observable(x,a,inputs)
+			ploc['debug']['fobs']=fobs
+			a = ot.slow_manifold(cinit_min,dx = exp_dx, f_def_obs = fobs, eps_ = eps_eff,time = time,rho=rho,method = 'BFGS',measure = measure,verbose = False,offset = offset_ts,maxiter=[1000,100],n_recuit = 10, isrecuit=False,r=reaction)
+		if inputs['input_verbose'] is True:
 			print a
-			print cinit_min
-		#ot.cost_gramian(a.x,f_def_obs = observable,rho=rho,dx=dx,eps_=eps_,time=timelog,offset=offset_ts,measure=mm,verbose=True)
-		gram=ot.EG(fobs = lambda x:observable(x,a.x),dx=exp_dx,eps_=eps_eff,time=timelog,offset=offset_ts)
+		gram=ot.EG(fobs = lambda x:observable(x,a.x,inputs),dx=exp_dx,eps_=eps_eff,time=time,offset=offset_ts)
+	#
 	else:
 		a = inputs['input_minimization']
+	inputs['outputs'][spec2rec] = {'output_minimization':a,'spec2use':spec2use,}
+	
+
+def plot_mech(inputs,reaction=None,xlim=None):
+	ploc = inputs['ploc']
+	outputs = inputs['outputs']
+	#
+	if reaction is None:
+		if 'main_reaction' not in outputs.keys():order_observability(inputs)
+		reaction = outputs['main_reaction']
+	#time
+	tmin,tmax = ploc['tmin'],ploc['tmax']
+	n_s = reaction.n_species
+	tmini = int(np.floor(np.log10(tmin)))
+	tmaxi = int(np.ceil(np.log10(tmax)))
+	#main parameters
+	pd = pt.Paradraw()
+	if n_s<10:pd.legend = [reaction.list[i] for i in xrange(n_s)]
+	pd.x_scale = 'log'
+	if xlim is None:
+		pd.xlim = [tmin,tmax]
+		pd.x_tick_label = [1.*10**i for i in xrange(tmini+1,tmaxi+1,2)]
+	else: pd.xlim = xlim
+	pd.x_label = 'time'
+	import matplotlib.colors as colors
+	pd.colors = []
+	for ic,c in enumerate(colors.cnames):
+		if ic<n_s:pd.colors.append(str(c))		
+#	pd.colors = ['tan','g','r','b','k','y','magenta','aqua']
+		
+	cc = [reaction.time_series('concentrations',i) for i in xrange(n_s)]
+	tt = (reaction.time,)*n_s
+	pd.y_label = 'n'
+	pd.ylim = [np.min(cc),np.max(cc)]
+	pt.multiplot2(tt,cc,pd)
+#
+	zz = [reaction.time_series('z',i) for i in xrange(n_s)]
+	pd.y_scale = 'log'
+	pd.y_label = 'z'
+	pd.ylim = [np.min(zz),np.max(zz)]
+	pt.multiplot2(tt,zz,pd)
+#
+	pd.y_scale = 'symlog'
+	pd.y_label = 'p rate'
+	pp = [reaction.time_series('rates',i) for i in xrange(n_s)]
+	pd.ylim = [np.min(pp),np.max(pp)]
+	pt.multiplot2(tt,pp,pd)
 
 
+def rec(inputs=params()):
+	
+	ploc = inputs['ploc']
+	specs2inds(inputs)
 	###########################################################
 	# This section just plots the reconstruction of one species
-	isrec,isplot = True,inputs['input_plots'][3]
+	offs='end'
+	if inputs['input_minimization'] is None:
+		if inputs['input_spec'] in inputs['outputs'].keys():
+			a = inputs['outputs'][inputs['input_spec']]['output_minimization']
+		else:
+			a = id_algebraic_constrains(inputs)
+	else:
+		a = inputs['input_minimization']
 	
-	if isrec is True:#reconstruction of the species
-		offs='end' 
-		ret = reconstruction(a.x,'',offset=offs,r=reaction,isplot=False)
-		pd = param_plot()
-		pd.marks = ['-']
-		pd.colors = ['k']
-		pd.y_scale = 'symlog'
-		pd.y_label = 'err in reconstruction'
-		pd.legend = [False]
-		if isplot is True: pt.plot2((timelog[1:-1],np.abs(ret[2][1:-1]-ret[3][1:-1])/np.abs(ret[2][1:-1])),pd)
-		if verbose is True:print J(a.x)
-		is_a_random = False
-		if is_a_random is True:
-			abis = 1-2*np.random.rand(a.x.size)
-			#print(J(abis))
-			reconstruction(abis,'alpha random',r=reaction)
-
-	############################################################
-	# This section compares the results with a pure minimization
-	min_test = False
-	if min_test is True:#compare with minimization
-		def jj(a):
-			x=reaction.time_series('z',ind2rec) + a[0]*reaction.time_series('z',ind2use[0]) + a[1]*reaction.time_series('z',ind2use[1])
-		#	x=np.dot(x[1:-1],np.diff(timelog))
-			j=np.linalg.norm(x)
-			return j
-
-		from scipy.optimize import minimize as solve
-
-		aa = solve(jj,np.zeros(2),method ='Powell')
-		tt = (timelog,timelog)
-		yy = (reaction.time_series('z',ind2rec)[1:], -aa.x[0]*reaction.time_series('z',ind2use[0])[1:] - aa.x[1]*reaction.time_series('z',ind2use[1])[1:]) 
-		pd = pt.Paradraw()
-		p=pt.Paradraw()
-		pd.title = 'test'
-		pd.x_scale = 'log'
-		pd.x_label = 'time'
-		pd.marks = ['-']
-		pd.colors = ['k']
-		pd.y_label = 'z'
-		pd.y_scale = 'log'
-		pd.ylim = False
-		pd.x_tick_label = [1.*10**i for i in xrange(tmini,tmaxi,2)]
-		#pd.x_tick_label = [1.*10**i for i in xrange(-9,-1,2)]
-		pd.xlim = [1e-9,1e-3]
-		pd.thickness = [2]
-		pd.ylim = False
-		pd.legend=[False]
-		pd.y_scale = 'symlog'
-
-		pt.multiplot2(tt,yy,pd)
+	try:
+		reaction = ploc['reaction']
+	except:
+		reaction = reaction_init(inputs)
+	ret = reconstruction(a.x,inputs,offset=offs,r=reaction)
 
 	###########################################################
 	# This section just plots the reconstruction of one species
 	#, with (strongly) different initial conditions
 	rand_test,rand_plot = inputs['input_compute_random'],inputs['input_plots'][4]
+	rand_test = False
 	if rand_test is True:
-		if inputs['input_ci_random'] is not None:nr=1
-		else:nr = 5
-		ci_save=[]
-		for irand in xrange(nr):
-			#tpinit_random = (1467,101325)
-			if inputs['input_tp_random'] is None:tpinit_random = tpinit
-			else:tpinit_random = inputs['input_tp_random']
-			reaction2 = chemreac(cti = mechanism, problem = prob,V=V)
-			reaction2.TP(tp=tpinit_random,reset = False)
-			if ci_random is None:
-		 		ci2 = c_init*(np.ones(n_s) +  .90*(np.random.rand(n_s)-0.5)*2. )
-				ci_save.append(ci2)
-			else:
-				ci2 = ci_random
-			#ci2 = np.array([0.0151,0.0033,0.0177,0.0147,0.0051,0.0023,0.0049,0.0131])
-			reaction2.concentrations(c=ci2,reset = True)
-			reaction2.integrate(time = timelog)
-			#ret2 = reconstruction(a.x,'ci random',offset=offs,r=reaction2)
-			ret2 = reconstruction(a.x,'',r=reaction2,isobs=False,isplot=rand_plot)
-			if verbose is True:
-				print 'spec mole: ' + str(reaction2.h_z[0])
-			if ci_random is not False:
-				obj_ = (timelog,ret,ret2,a,(n_obs,n_obs_square,n_obs_cubic))
- 				#dt.save(filename=spec2rec + '.rec',obj=obj_)
+		nr=1
+		if inputs['input_tp_random'] is None:tpinit_random = tpinit
+		else:tpinit_random = inputs['input_tp_random']
+		reaction2 = reaction_init(inputs,israndom=True)
+		ret2 = reconstruction(a.x,inputs,r=reaction2)
+		if inputs['input_verbose'] is True:
+			print 'spec mole: ' + str(reaction2.h_z[0])
 	else:
 		ret2 = None
 		reaction2=None
 
-	name = 'plop'
-	path = '/home/fgueniat/Documents/productions/UIUC/XPACC_chat/janvier/text'
+#	gram =lambda a: ot.EG(fobs = lambda x:observable(x,a),dx=exp_dx,eps_=eps_eff,time=timelog,offset=offset_ts)
+#	rr = lambda a: reconstruction(a,r=reaction,isplot=False)
 
-	gram =lambda a: ot.EG(fobs = lambda x:observable(x,a),dx=exp_dx,eps_=eps_eff,time=timelog,offset=offset_ts)
-	rr = lambda a: reconstruction(a,r=reaction,isplot=False)
+#
+#
+#	ret_ = {
+#		'reaction':reaction,'retour':ret,
+#		'reaction_pert':reaction2,'retour_pert':ret2,
+#		'result_min':a,
+#		'indexes':ind2use,
+#		'time':timelog,
+#		'obs_index':obs_sorted,
+#		'gramian':w,
+#		'parameters':inputs
+#		}
 
-	isderiv = False
-	if isderiv is True:
-		def testderiv(err):
-			dd = np.logspace(-10,-1,100)
-			jj = [(J(cinit_min + ddd)-J(cinit_min))/ddd for ddd in dd]
-			pd = pt.Paradraw()
-			pd.x_scale = 'log'
-			pd.y_scale = 'symlog'
-			pd.y_label = 'dj/dalpha'
-			pd.x_label = 'dalpha'
-			pt.plot2((dd,jj),pd)
-			fobs = lambda z: observable(z,a.x)
-			y1 = np.array([fobs(z) for z in reaction.h_z[1:-1]])
-			fobs = lambda z: observable(z,a.x+err)
-			y2 = np.array([fobs(z) for z in reaction.h_z[1:-1]])
-			pd.marks = ['','-']
-			pd.markers = ['o','']
-			pd.colors = ['r','k']
-			pd.y_label = 'obs'
-			pd.x_label = 'time'
-			pd.title = str(np.linalg.norm((y1-y2)*np.diff(timelog))/err/np.diff(timelog).mean())
-			pt.multiplot2((timelog[1:],timelog[1:]),(y1,y2),pd)
-			return jj,y1,y2
-		dj,y1,y2=testderiv(1.e-2)
-#
-	def getW(a):
-		fobs = lambda z: observable(z,a)
-		w = ot.EG(fobs,exp_dx,eps_eff,timelog,offset = offset_ts,r=reaction)
-		return w
-#
-	issurface = False
-	if issurface is True:
-		nx,ny = 50,50
-		dx,dy = 1.e-3,1.e-3
-		
-		indx,indy=np.argsort(a.x)[0:2]
-		indx,indy = 0,1
-		jj = np.zeros((nx,ny))
-		x = np.linspace(a.x[indx]-dx,a.x[indx]+dx,nx)
-		y = np.linspace(a.x[indy]-dy,a.x[indy]+dy,ny)
-		for ix,xx in enumerate(x):
-			print 'pourcentage: ' + '%.3f' %(100.*ix/nx)
-			for iy,yy in enumerate(y):
-				ax = np.copy(a.x)
-				ax[indx] = xx
-				ax[indy] = yy
-				jj[ix,iy] = J(ax)
-		pd=pt.Paradraw()
-		pd.x_label = spec2use[indx]
-		pd.y_label = spec2use[indy]
-		pt.pcolor((y,x,np.log10(np.abs(jj))),pd)
-#
 	ret_ = {
 		'reaction':reaction,'retour':ret,
 		'reaction_pert':reaction2,'retour_pert':ret2,
 		'result_min':a,
-		'indexes':ind2use,
-		'time':timelog,
-		'obs_index':obs_sorted,
-		'gramian':w,
-		'parameters':inputs
 		}
+
+
 	return ret_
 	#return reaction,ret,reaction2,ret2,a,ind2use[0:n_obs],timelog,obs_sorted
+
+def rec_Temp(inputs):
+    if 'main_reaction' not in inputs['outputs'].keys():
+        order_observability(inputs)
+    reaction = inputs['outputs']['main_reaction']
+    specs = inputs['outputs']['observable_sorted']
+    d={}
+   # inputs['ploc'].pop('reaction',None)
+    for spec in specs:
+        inputs['input_spec'] = spec
+#        inputs['input_minimization'] = inputs['outputs'][spec]['output_minimization']
+        d[spec] = rec(inputs)
+    z = [d[spec]['retour'][2] for spec in specs]
+    reaction = d['H']['reaction']
+    z_hat = [d[spec]['retour'][3] for spec in specs]
+    time = inputs['ploc']['time']
+    #reaction = inputs['ploc']['reaction']
+    t_real = reaction.h_T[1:]
+    w = reaction.gas.molecular_weights
+    t_hat = []
+    v_real = reaction.h_volume
+    #v_pert = reaction_pert.h_volume
+    for it,tt in enumerate(time):
+        zh = [z_hat[i][it] for i in xrange(reaction.n_species)]
+        yh = zh*w
+        t_hat.append(reaction.y2t(y=yh,v=v_real[it+1]))
+    t = reaction.h_T[1:]
+    return t,t_hat,time
 
 if __name__ == "__main__":
 	inputs = params(sys.argv)

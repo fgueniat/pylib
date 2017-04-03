@@ -180,6 +180,16 @@ def Smooth_cov(n,x,m,var,isL=False):
 	else:
 		return np.dot(L.T,L)
 
+def MG2D(x,lissage=1,filtre='lin'):
+    def mg(x,lissage,filtre):
+        xl = np.empty(x.shape)
+        for ix,xx in enumerate(x):
+            xl[ix,:] = MG(xx,lissage=lissage,filtre=filtre)
+        return xl
+    xl = mg(x,lissage=lissage,filtre=filtre)
+    xl = mg(xl.T,lissage=lissage,filtre=filtre).T
+    return xl
+
 def MG(x,lissage=1,filtre = "lin"):
 	y = np.zeros(x.size)
 

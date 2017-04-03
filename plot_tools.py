@@ -16,14 +16,14 @@ from scipy.stats import gaussian_kde
 ##################################################################################
 path = '/home/fgueniat/Documents/productions/'
 class Paradraw():
-	def __init__(self,marks=['-'], colors = ['k'], markers = [''], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best'):
+	def __init__(self,marks=['-'], colors = ['k'], markers = [''], thickness=[1],x_label = 'axis 1',y_label = 'axis 2',z_label = 'axis 3',c_label = 'colors', colmap = 'hot_r',xlim = False,ylim = False,zlim = False,clim = False, x_scale = 'linear',y_scale = 'linear',z_scale = 'linear',c_scale = 'linear',xlintresh=1.e-10,ylintresh=1.e-10,zlintresh=1.e-10,clintresh=1.e-10,title='',iscolorbar = True,fontsize = 20,ticksize = 16, x_tick_label = False,y_tick_label = False,z_tick_label = False,cbar_tick_label = False,ax_x_format = '%.2e',ax_y_format = '%.2e',ax_z_format = '%.2f',cbformat = '%.2f',figure=False, bar_col = [0.0,0.0,1.0],transparancy = False,ncont = 15,pcol_type = 'contourf',tight_layout=True, stem = False,legend=[False],legloc = 'best',axis=None):
 
 #plot style
 		self.marks = marks
 		self.colors = colors
 		self.markers = markers
 		self.thickness = thickness
-		self.markeredge = True
+		self.markeredge = False
 		self.colmap = colmap
 		self.ncont = ncont
 		self.pcol_type = pcol_type
@@ -31,6 +31,7 @@ class Paradraw():
 		self.transparancy = transparancy
 		self.tight_layout = tight_layout
 		self.stem  = stem
+                self.axis = None
 #legend
 		self.legend=legend
 		self.legloc = legloc
@@ -337,6 +338,8 @@ def pcolor(data,param=False):
 	pylab.ion()
 	fig = pylab.figure()
 	ax = fig.add_subplot(111)
+        if param.axis is not None:
+            ax.axis(param.axis)
 	if param.clim is not False:
 		cmin = param.clim[0]
 		cmax = param.clim[1]
@@ -801,6 +804,13 @@ def save(path = None,name = None, fig = None):
 ###########################  DIVERS  #############################################
 ##################################################################################
 
+def get_colors(n=1):
+	import matplotlib.colors as colors
+	cols = []
+	for ic,c in enumerate(colors.cnames):
+		if ic<n:cols.append(str(c))
+	return cols
+
 def flim1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
 	if figure is False:
 		fig = pyplot.figure( 1 )
@@ -818,4 +828,5 @@ def flim1(figure,b,mark_col="-k",a_label = 'axis 1',b_label = 'axis 2'):
 	return (fig,ax,im)
 
 
-
+#ani = matplotlib.animation.FuncAnimation(fig, animate, init_func=init_animation, frames=50)
+#ani.save('test_anim.gif', writer='imagemagick', fps=30)

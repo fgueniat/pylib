@@ -40,7 +40,6 @@ class chemreac():
 				#if n>0:n=1./n
 				self.E[i_s,i_e] = n
 			#self.E[i_e,:] = self.E[i_e,:]/sum(self.E[i_e,:])
-		
 			
 	def reset(self):
 		self.time = [0]
@@ -74,7 +73,7 @@ class chemreac():
 		if isinstance(problem[1],str) is False: problem[1] = 'volume'
 		if problem[0].lower() == '0d':
 			if problem[1].lower() == 'pressure':
-				self.reactor = ct.ConstPressureReactor(self.gas)
+				self.reactor = ct.IdealGasConstPressureReactor(self.gas)
 				self.problemis = '0D, iso bar'
 			if problem[1].lower() == 'volume':
 				self.reactor = ct.IdealGasReactor(self.gas)
@@ -217,7 +216,25 @@ class chemreac():
 	def ts_Y(self,i=0):return np.array(self.h_y)[:,i]
 	def ts_Z(self,i=0):return np.array(self.h_z)[:,i]
 	def ts_rates(self,i=0):return np.array(self.h_rates)[:,i]
+	def plot(self,style='z'):
+		import plot_tools as pt
+		pd = pt.Paradraw()
+		pd.colors = pt.get_colors(self.n_species)
+		pd.x_scale = 'symlog'
+		pd.y_scale = 'symlog'
+		pd.x_label = 't'
+		if style == 'rates':
+			pd.y_label = 'rates'
+			zs = [self.ts_rates(i)[1:] for i in xrange(self.n_species)]
+		else:
+			pd.y_label = 'z'
+			zs = [self.ts_Z(i)[1:] for i in xrange(self.n_species)]
+		time = (self.time[1:],)*self.n_species
+		figs = pt.multiplot2(time,zs,pd)
+		return figs
 
+
+	
 	def __getitem__(self,key):
 		return self.list[key]
 
