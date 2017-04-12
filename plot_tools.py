@@ -729,7 +729,9 @@ def Options(ax,X,param=False, cbar=False):
 		if param.z_tick_label is None: ax.zaxis.set_visible(True)
 
 	if all(legend is False for legend in param.legend) is False:
-		ax.legend(loc=param.legloc)
+		leg = ax.legend(loc=param.legloc,fontsize = 'small')
+                leg.draggable(state=True)
+                
 	if is3d is False:	
 		if param.tight_layout is True:
 			try:
