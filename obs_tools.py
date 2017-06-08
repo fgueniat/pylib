@@ -18,10 +18,13 @@ def params(argv=None,inputs = None):
             'input_tmin':1.e-7,
             'input_tmax':1.e-2,
             'input_offset_ts':0.2,
+            'input_offtype':'slow',
             'input_eps_':5.e-2,
             'input_rho':1.e-9,
             'input_measure':'trace',
             'input_spec':'O2',
+            'input_method':'BFGS',
+            'input_index_sorted':None,
             'input_n':4,
             'input_n_square':0,
             'input_n_cubic':0,
@@ -51,7 +54,7 @@ def params(argv=None,inputs = None):
 
 measures_possible = ['cond', 'det','trace','max_svd']
 
-def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False,offset = 0.2,method = 'BFGS',isrecuit=True, niter=50,maxiter=[2000,250],n_recuit=10,r=None):
+def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho = 1.e-3, measure = None, verbose = False,offset = 0.2,offtype='slow',method = 'BFGS',isrecuit=True, niter=50,maxiter=[2000,250],n_recuit=10,r=None):
     '''Identify geometric constra ins based on observability analysis'''
     if dx is None:
         print 'run f_explore first'
@@ -65,7 +68,7 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
     if f_def_obs is None:
         print ' obserabl def as y=sum alpha_i x_i'
         f_def_obs = lambda x,alpha: np.dot(alpha,x)
-    argums = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,offset,verbose,r)
+    argums = (f_def_obs,rho,dx,eps_,time,False,False,False,measure,offset,offtype,verbose,r)
     if type(maxiter) is not list: 
         if type(maxiter) is int or type(maxiter) is float:
             maxiter=[maxiter]
@@ -84,7 +87,7 @@ def slow_manifold(alpha_0, dx=None, f_def_obs=None,eps_ = None,time = None,rho =
     a = solve(cost_gramian,alpha_0,method = method, tol = 1.e-5,args = argums,options=opt)
     return a
 
-def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False, nt = False, ny=False, nx = False, measure=None, offset = 0.2, verbose = False,r=None):
+def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=False, nt = False, ny=False, nx = False, measure=None, offset = 0.2, offtype ='slow', verbose = False,r=None):
     '''Compute the gramian and its  measure'''
     # parameters
     if f_def_obs is False:#def obs
@@ -95,7 +98,7 @@ def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=Fals
     if ny is False:ny = np.size(fobs(dx[0,:,0,0]))
     #
     #computation of the gramian
-    w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny, offset = offset,r=r)
+    w = EG(fobs = fobs, dx=dx, eps_ = eps_, time = time, nt = nt, nx = nx, ny = ny, offset = offset,r=r,offtype = offtype)
     if measure is None or measure not in measures_possible:
         measure = 'trace'
     norm_type = 1    
@@ -112,14 +115,13 @@ def cost_gramian(alpha, f_def_obs=False, rho=0., dx=False, eps_=False, time=Fals
     return J
 
 
-def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2,r=None):
+def EG(fobs,dx,eps_,time,nt = False,nx = False,ny = False,offset = .2,r=None,offtype = 'slow'):
     ''' Empirical gramian'''
     # parameters
     if nt is False:nt = np.size(time)
     if nx is False:nx = dx[0,:,0,0].size
     if ny is False:ny = fobs(dx[0,:,0,0]).size
     offset = int(offset*nt)+1
-    offtype = 'slow'
     if offtype == 'fast':
         nstart = 1
         nend = offset
@@ -271,7 +273,7 @@ def M(W,measure='max_svd'):
     if J == np.inf:
         J = 1.e18
 #    return J
-    return 1.*np.log(J)
+    return J
 
 def ode(fdyn,time,x0):
     '''Integrate system at hand with Runge Kutta 4'''

@@ -233,10 +233,26 @@ class chemreac():
 		figs = pt.multiplot2(time,zs,pd)
 		return figs
 
+	def stoich(self,fuel='H2',oxidizer='O2'):
+            ind_ox = self.list[oxidizer]
+            try:
+                ind_fuel = self.list[fuel]
+            except:
+                print 'fuel does not exist'
+                return -1
+            ratio_oxfuel = self.h_y[0][ind_ox]/self.h_y[0][ind_fuel]
+            print 'Ox/Fuel ratio by mass: ' + str(ratio_oxfuel)
+            if fuel == 'H2': st = 34.3
+            elif fuel == 'CH4': st = 17.19
+            else:
+                return -1
+            print 'Fuel/ox equivalent ratio' + str(ratio_oxfuel/st)
 
 	
 	def __getitem__(self,key):
 		return self.list[key]
+            
+
 
 
 def compute_T(P,V,zs,r):

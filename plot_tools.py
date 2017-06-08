@@ -85,6 +85,10 @@ class Paradraw():
 		return self.__dict__
 	@property
 	def r(self): self.figure=False
+	
+        @property
+	def closeall(self): closeall()
+
 
 
 ##################################################################################

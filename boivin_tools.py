@@ -29,6 +29,7 @@ def params(argv=None,inputs = None):
 			'input_tp_random':None,
 			'input_minimization':None,
 			'input_verbose':False,
+                        'input_index_sorted':None,
 			'input_plots':[False,False,False,False,False,False],
 			'ploc':{},
 			'outputs':{},
