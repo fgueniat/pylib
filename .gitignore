@@ -1,3 +1,11 @@
 *.swp
 *.pyc
 *.py~
+*.bak
+*.log
+mtg_tools.py
+improved_mtg_tools.py
+coffee.py
+bithon.py
+dns_tools.py
+kodi_tools.py

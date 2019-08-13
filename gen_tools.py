@@ -359,7 +359,7 @@ def RPN(expression,input_):
 		
 	return stack.pop()
 
-def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15, random_select=0.15, mutate=0.1, new = 0.05, verbose = False,  npar = 0,parameters = False):
+def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.35, random_select=0.15, mutate=0.1, new = 0.01, verbose = False,  npar = 0,parameters = False,is_final = False):
 	""" Evolution of a population. 
 	* f_fit: fitness function, ie the function that computes the score -cost- associated to an individu.
 	* f_mut: mutation function, ie the function that describes how mutation of an individu is done.
@@ -382,28 +382,25 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15
 		scores_temp = Parallel(n_jobs=npar)(delayed(f_fit)(individual) for individual in pop)
 		scores = [ (scores_temp[i],pop[i]) for i in xrange(len(pop))]
 #
-	scores_ = [ scores[i][0] for i in xrange(len(pop))]
+        scores = [ individual for individual in sorted(scores, key=lambda indiv: indiv[0])]
 	if verbose is True:
-		scores = [ individual for individual in sorted(scores)]
 		s = scores[0][0]
-		score_mean = np.mean([score[0] for score in scores]) 
+		score_median = np.median([score[0] for score in scores]) 
 		score_std = np.std([score[0] for score in scores]) 
 		print('score of the best individual :' + str(s))
-		print('mean :' + str(score_mean) + ' and std:' + str(score_std))
+		print('median :' + str(score_median) + ' and std:' + str(score_std))
 
-	#sort scores
-	scores = [ individual[1] for individual in sorted(scores)]
-
+            
 	# keep the best
 	retain_length = int(len(scores)*retain)
 	if retain_length<3:retain_length=3
-	parents = scores[:retain_length]
+	parents = [scores[i_keep][1] for i_keep in xrange(retain_length)]
 
 	# randomly add other individuals to
 	# promote genetic diversity
 	for individual in scores[retain_length:]:
 		if random_select > random():
-			parents.append(individual)
+			parents.append(individual[1])
 		if f_new is not False:
 			if new > random():
 				parents.append(f_new())
@@ -430,4 +427,7 @@ def Evolve(pop, f_fit=None, f_mut=None, f_cross=None, f_new = False, retain=0.15
 			children.append(child)
 
 	parents.extend(children)
-	return parents,scores_
+	if is_final is True:
+            return scores[0][1],parents,[score[0] for score in scores] 
+        else:
+            return parents,[score[0] for score in scores] 
