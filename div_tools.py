@@ -60,7 +60,7 @@ def Cleandic(twodic,list_):
 	return td
 
 
-def save(obj = False, filename = False):
+def save(obj = False, filename = False,verbose=True):
 	if obj is False:
 		print 'nothing to save'
 		return
@@ -70,7 +70,7 @@ def save(obj = False, filename = False):
 	output = open(filename, 'wb')
 	pickle.dump(obj,output)
 	output.close()
-	print('file saved in:' + filename)
+	if verbose is True:print('file saved in:' + filename)
 	return filename
 
 def load(filename = False):
