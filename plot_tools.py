@@ -178,6 +178,7 @@ def plot2(data,param=False):
         
     return param
 
+
 def multiplot1(y,param=False):
     pylab.ion()
     if param is False:
@@ -199,6 +200,100 @@ def multiplot1(y,param=False):
 
 def multiplot2(x,y,param=False):
 
+    if param is False:
+        param = Paradraw()
+    param.iscolorbar = False
+    if param.xlim is False:
+        param.xlim = [np.nanmin(x[0]),np.nanmax(x[0])]
+        for i in range(1,len(x)):
+            m=np.nanmin(x [i])
+            if m < param.xlim[0]: param.xlim[0] = m
+            m=np.nanmax(x[i])
+            if m > param.xlim[1]: param.xlim[1] = m 
+    if param.ylim is False:
+        param.ylim = [np.nanmin (y[0]),np.nanmax(y[0])]
+        for i in range(1,len(y)):
+            m=np.nanmin(y[i]) 
+            if m < param.ylim[0]: param.ylim[0] = m
+            m=np.nanmax(y[i])
+            if m > param.ylim[1]: param.ylim[1] = m 
+
+    figure = param.figure
+
+    pylab.ion()
+    if figure is False:
+        fig, ax = pyplot.subplots()
+    else:
+        fig = figure[0] 
+        ax = figure[1]
+    if param.transparancy is False:
+        transparancy = 1.00
+    else:
+        transparancy = 0.3
+    for i in range(0,len(y)):
+
+        j = len(y)-i-1 
+        if j==0:
+            transparancy = 1.0
+        try:
+            sty = param.marks[j]
+        except:
+            sty = '-'
+        try:
+            mi = param.markers[j]
+        except:
+            mi = ''
+        try:
+            ci = param.colors[j]
+        except:
+            ci = next(cycol)
+        try:
+            linewidth = param.thickness[j]
+        except:
+            try:
+                linewidth = param.thickness[0]
+            except:
+                linewidth = 3
+        try:
+            leg=param.legend[j]
+        except:
+            leg=False
+        try:
+            ms = param.markerssize[j]
+        except:
+            ms = ms = param.markerssize[0]
+        if np.sum(np.isnan(y[j]))<len(y[j]):
+            if param.markeredge is False:
+                if param.stem is False:
+                    ax.plot(x[j],y[j],linestyle = sty, marker = mi, ms=ms, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+                else: 
+                    ax.stem(x[j],y[j],linestyle = sty, marker = mi, ms=ms, color = ci, markeredgecolor='none',linewidth = linewidth,alpha=transparancy,label=leg)
+            else:
+                if param.stem is False:
+                    ax.plot( x[j],y[j],linestyle = sty, marker = mi, ms=ms, color = ci, linewidth = linewidth,alpha=transparancy,label=leg)
+                else:
+                    ax.stem(x[j],y[j],linestyle = sty, marker = mi,ms=ms, color = ci,linewidth = linewidth,alpha=transparancy,label=leg)
+    
+    ax.set_xlabel(param.x_label)
+    ax.set_ylabel(param.y_label)
+    param.fig = fig
+    param.ax = ax
+    Options((nanminmax(x),nanminmax(y)),param)
+
+    return param
+def nanminmax(xx):
+    xm,xM = 1.e30,-1.e30
+    for x in xx:
+        if np.nanmin(x)<xm:xm = np.nanmin(x)
+        if np.nanmax(x)>xM:xM = np.nanmax(x)
+    return [xm,xM]
+
+
+##################################################################################
+############################  PLOT 3D  ###########################################
+##################################################################################
+            
+def plot3(x,y,z, param = False,figure=False):
     if param is False:
         param = Paradraw()
     param.iscolorbar = False
@@ -331,7 +426,8 @@ def plot3(x,y,z, param = False,figure=False):
     pylab.show()
     return param
 
-def multiplot3(x,y,z,param = False, figure=False):
+
+def multiplot3(x,y,z,figure=False, param = False):
     if param is False:
         param = Paradraw()
     pylab.ion()
@@ -481,6 +577,225 @@ def pcolor(data,param=False):
     pylab.show()
     return param
 
+def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
+    p = np.argsort(z)
+    print(p.shape)
+    print(a.shape)
+    print(b.shape)
+    print(c.shape)
+    print(p.max())
+    macol = pyplot.cm.bwr(np.arange(len(z)))
+    print(macol.shape)
+    pylab.ion()
+    if figure is False:
+        fig = pylab.figure() 
+        ax = fig.add_subplot(111, projection='3d')
+    else:
+        fig = figure[0] 
+        ax = figure[1]
+    ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
+    ax.set_xlabel(a_label)
+    ax.set_ylabel(b_label)
+    ax.set_zlabel(c_label)
+
+    return (fig,ax)
+
+def plot3cluster(a,b,c,keys,codomain,order,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
+    pylab.ion()
+    fig = pylab.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    colbase = pyplot.cm.jet(np.arange(256))
+    colbase = colbase[np.int64(np.linspace(0,255,len(codomain))),:]
+    for i in range(len(codomain)):
+        p = np.where(keys==codomain[order[i]-1])[0]
+        macol = np.array([np.random.random(),np.random.random(),np.random.random(),1.])
+        macol = colbase[i,:]
+        ax.scatter(a[p], b[p], c[p], c=macol,edgecolor='')
+    ax.set_xlabel(a_label)
+    ax.set_ylabel(b_label)
+    ax.set_zlabel(c_label)
+
+    return (fig,ax)
+
+def plot3cluster2(X,clusters,keys,colors,param=False):
+    
+    if param is False:
+        param = Paradraw()
+    pylab.ion()
+    fig = pylab.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+
+    for p in range(len(colors)):
+        try:
+            mtype=param.markers[p]
+        except:
+            mtype=param.markers[0]
+        #      
+        try:
+            s=param.markerssize[p]
+        except:
+            s=param.markerssize[0]
+        #
+        ax.scatter(X[p,0], X[p,1], X[p,2], c=colors[p],edgecolor='none',s=s,marker=mtype)
+    for key in keys:
+        k= [key[kk] for kk in range(key.size)] 
+        xx = []
+        norm_xx = []
+        for i in range(len(clusters)):
+            clust=clusters[i]
+            c= [clust[kk] for kk in range(len(clust))]
+            if c == k:
+                col = colors[i]
+                xx.append(X[i])
+            #
+        #
+        xx = np.array(xx)
+        try:
+            axx.plot_trisurf(xx[:,0], xx[:,1], xx[:,2], linewidth=0.0, antialiased=False,edgecolor='none',color = col,shade=False)
+        except:
+            pass
+    param.fig = fig
+    param.ax = ax
+    param.iscolorbar = False
+    Options((X[:,0],X[:,1],X[:,2]),param)
+    return (fig,ax)
+
+
+def density2D(x,y,param=False):
+    # Calculate the point density
+    xy = np.vstack([x,y])
+    z = gaussian_kde(xy)(xy)
+
+    # Sort the points by density, so that the densest points are plotted last
+    idx = z.argsort()
+    try:x, y, z = x[idx], y[idx], z[idx]
+    except:x, y, z = np.array(x)[idx], np.array(y)[idx], np.array(z)[idx]
+
+
+    if param is False:
+        param = Paradraw()
+    pylab.ion()
+    if param.figure is False:
+        fig, ax = pyplot.subplots()
+        #fig = pylab.figure()
+        #ax = Axes3D(fig)
+    else:
+        fig = figure[0]
+        ax = figure[1]
+    ax.scatter(x, y, c=z, s=50, edgecolor='')
+    param.ax = ax
+    param.fig = fig
+    Options((x,y),param)
+    
+    return param
+
+##################################################################################
+#########################  PLOT STATS  ###########################################
+##################################################################################
+
+def pwelch(data=False,dt=False,param=False,normalize = None,normalize_around = None,dnorm=None,strouhal = 1.,isplot=True):
+    '''
+    normalize:
+        False: nothing
+        'absolute': normalize
+        float: by the max aroud float
+    '''
+    if data is False:
+        print('no data')
+        return -1
+    import scipy.fftpack
+    from scipy import signal
+    # Number of samplepoints
+    if param is False:
+        param=Paradraw()
+        param.ax_x_format = '%.3f'
+        param.ax_y_format = '%.3f'
+        param.y_scale = 'log'
+        param.ylabel = 'PSD'
+        param.xlabel = 'f'
+    N = len(data)
+    # sample spacing
+    if dt is False:dt = 1.
+    df = 1./dt
+
+    xf, yf = signal.welch(data, df, nperseg=1024)
+    xf = xf*strouhal
+
+    if normalize == True:
+        yf = yf/np.nanmax(yf)
+    if normalize_around is not None:
+        from numbers import Number
+        if isinstance(normalize_around,Number):
+            ind = np.argmin(np.abs(xf-normalize_around))
+            if isinstance(dnorm,Number):
+                df = np.argmin(np.abs(xf -  dnorm  ) )
+                if df>ind:df = ind
+                print(df,ind)
+            else:
+                df = int(0.1*normalize_around*(N*dt)/strouhal) # N*dt = 1/df
+            indm = np.nanmax([0,ind-df])
+            indM = np.nanmin([N,ind+df])
+            rn = np.nanmax(yf[indm:indM])
+            yf = yf/rn
+    if isplot is True:
+        fig,ax = plot2((xf, yf),param)
+        param.ax = ax
+        param.fig = fig
+        return param
+    else:
+        return (xf,yf)
+
+def fft(data=False,time=False,param=False,normalize = False,strouhal=1.,isplot=True):
+    '''
+    normalize:
+        False: nothing
+        True: normalize at 1
+        float: by the max aroud float
+    '''
+    if data is False:
+        print('no data')
+        return -1
+    import scipy.fftpack
+    # Number of samplepoints
+    if param is False:
+        param=Paradraw()
+        param.ax_x_format = '%.3f'
+        param.ax_y_format = '%.3f'
+        param.ylabel = 'PSD'
+        param.xlabel = 'f'
+    
+        
+    N = len(data)
+    # sample spacing
+    if time is False:time = np.linspace(0,1,N)
+    dt = time[1]-time[0]
+    yf = scipy.fftpack.fft(data)
+    xf = np.linspace(0.0, 1.0/(2.0*dt), N/2)*strouhal
+#    print len(xf)
+#    print len(yf)
+    yf = 2.0/N * np.abs(yf[:N//2])
+    if normalize is True:
+        yf = yf/np.nanmax(yf)
+    elif normalize is False:
+        pass
+    else:
+        from numbers import Number
+        if isinstance(normalize,Number):
+            ind = np.argmin(np.abs(xf-normalize))
+            df = int(0.1*normalize*(N*dt)/strouhal) # N*dt = 1/df
+            indm = np.nanmax([0,ind-df])
+            indM = np.nanmin([N,ind+df])
+            rn = np.nanmax(yf[indm:indM])
+            yf = yf/rn
+            
+    if isplot is True:
+        fig,ax = plot2((xf, yf),param)
+        param.fig = fig
+        param.ax = ax
+        return param
+    else:
+        return (xf,yf)
 
 def plot3c(figure,a,b,c,z,a_label = 'axis 1',b_label = 'axis 2',c_label = 'axis 3'):
     p = np.argsort(z)

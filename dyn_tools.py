@@ -132,7 +132,6 @@ def embedding(x,d_emb = 3,type_emb=None,dt = False,n_emb = 10):
         X = np.array(
             [x[0+i*n_emb:-(d_emb-i)*n_emb] for i in range(d_emb)]
             ).T
-
     else:
         print('not implemented yet')
         return -1
@@ -173,8 +172,8 @@ def visibility_graph(x,time=False,n=20,mem_save = False,forced=False,verbose = F
         print_prog = 0
         last_print = 0
         nmax = nt
-        for ix in xrange(nx-2):
-            for iy in xrange(ix+2,nx):
+        for ix in range(nx-2):
+            for iy in range(ix+2,nx):
                 if verbose is True:
                     print_prog +=1
                     if int(100.*print_prog/nmax) > last_print:
@@ -188,7 +187,7 @@ def visibility_graph(x,time=False,n=20,mem_save = False,forced=False,verbose = F
                     ta = time[ix]
                     tb = time[iy]
                     test = True
-                    for ic in xrange(ix+1,iy):
+                    for ic in range(ix+1,iy):
                         yc = X[ic]
                         tc = time[ic]
                         if yc > ya + (yb-ya)*(tc-ta)/(tb-ta):
@@ -205,7 +204,7 @@ def visibility_graph(x,time=False,n=20,mem_save = False,forced=False,verbose = F
         last_print = 0
         nmax = nt
         graph = np.zeros(nx)
-        for ix in xrange(nx-1):            
+        for ix in range(nx-1):            
             if verbose is True:
                     print_prog +=1
                     if int(100.*print_prog/nmax) > last_print:
@@ -245,7 +244,7 @@ def visibility_graph(x,time=False,n=20,mem_save = False,forced=False,verbose = F
                     '''
                 #weave.inline(code,['graph','X','time','nx','ix'],type_converters=weave.converters.blitz)
             else:
-                for iy in xrange(ix+2,nx):
+                for iy in range(ix+2,nx):
                     if ix-iy<tresh:
                         if ix==iy:
                             pass
@@ -255,7 +254,7 @@ def visibility_graph(x,time=False,n=20,mem_save = False,forced=False,verbose = F
                             ta = time[ix]
                             tb = time[iy]
                             test = True
-                            for ic in xrange(ix+1,iy):
+                            for ic in range(ix+1,iy):
                                 yc = X[ic]
                                 tc = time[ic]
                                 if yc > ya + (yb-ya)*(tc-ta)/(tb-ta):
