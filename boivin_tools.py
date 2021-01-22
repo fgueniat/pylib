@@ -68,7 +68,7 @@ def extended_sm(inputs,specs=None,verbose=False):
 	order_observability(inputs)
 	#
 	for ispec,spec in enumerate(specs):
-		if verbose is True:print 'spec # ' + str(ispec) + ' over ' + str(n_s) 
+		if verbose is True:print('spec # ' + str(ispec) + ' over ' + str(n_s) )
 		inputs['input_spec']=spec
 		id_algebraic_constrains(inputs)
 		dict_param[spec] = inputs['outputs'][spec].copy()
@@ -212,8 +212,8 @@ def order_observability(inputs):
 	obs_prop = np.argsort(w0)[::-1]
 	obs_sorted = [reaction.list[obs_prop[i]] for i in xrange(n_s)]
 	if inputs['input_verbose'] is True:
-		print 'from most observable to least observable:'
-		print ', '. join(obs_sorted)
+		print('from most observable to least observable:')
+		print(', '. join(obs_sorted))
 	#ploc['observable_sorted'] = obs_sorted
 	inputs['outputs']['observable_sorted'] = obs_sorted
 
@@ -246,7 +246,7 @@ def id_algebraic_constrains(inputs,reaction=None,spec2use=None):
 			ploc['debug']['fobs']=fobs
 			a = ot.slow_manifold(cinit_min,dx = exp_dx, f_def_obs = fobs, eps_ = eps_eff,time = time,rho=rho,method = 'BFGS',measure = measure,verbose = False,offset = offset_ts,maxiter=[1000,100],n_recuit = 10, isrecuit=False,r=reaction)
 		if inputs['input_verbose'] is True:
-			print a
+			print(a)
 		gram=ot.EG(fobs = lambda x:observable(x,a.x,inputs),dx=exp_dx,eps_=eps_eff,time=time,offset=offset_ts)
 	#
 	else:
@@ -333,7 +333,7 @@ def rec(inputs=params()):
 		reaction2 = reaction_init(inputs,israndom=True)
 		ret2 = reconstruction(a.x,inputs,r=reaction2)
 		if inputs['input_verbose'] is True:
-			print 'spec mole: ' + str(reaction2.h_z[0])
+			print('spec mole: ' + str(reaction2.h_z[0]))
 	else:
 		ret2 = None
 		reaction2=None

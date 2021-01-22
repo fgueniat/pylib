@@ -12,7 +12,7 @@ def print_to_kodi(s):
 		ss = 'time before writing in kodi is ' + str(nt-i) + 's'
 		print(ss)
 		time.sleep(1)
-	gui.typewrite(s, interval=0.25)
+	gui.typewrite(s, interval=0.1)
 
 
 if __name__ == "__main__":
